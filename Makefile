@@ -1,5 +1,5 @@
-PROGRAM=project_template
-# EXTRA_COMPONENTS =
+PROGRAM=bmp280-influxdb
+EXTRA_COMPONENTS = extras/i2c extras/bmp280
 
 # Settings for the ESP Dev board
 FLASH_SIZE = 32
