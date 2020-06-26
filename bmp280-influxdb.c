@@ -9,17 +9,22 @@
 #include "i2c/i2c.h"
 #include "bmp280/bmp280.h"
 
+extern void http_post_task();
+
 const uint8_t i2c_bus = 0;
 const uint8_t scl_pin = 0;
 const uint8_t sda_pin = 2;
 
 const int led_pin = 13;
 
+float pressure;
+float temperature;
+
 
 static void bmp280_task_normal(void *pvParameters)
 {
     bmp280_params_t  params;
-    float pressure, temperature, humidity;
+    float humidity;
 
     bmp280_init_default_params(&params);
     // Change standby time to 1 second
@@ -80,6 +85,8 @@ void user_init(void)
 
     i2c_init(i2c_bus, scl_pin, sda_pin, I2C_FREQ_400K);
 
-    xTaskCreate(led_blink_task, "led_blink_task", 256, NULL, 2, &led_blink_task_handle);
+    // xTaskCreate(led_blink_task, "led_blink_task", 256, NULL, 2, &led_blink_task_handle);
+    xTaskCreate(led_blink_task, "led_blink_task", 256, NULL, 2, NULL);
+    xTaskCreate(http_post_task, "post_task", 384, NULL, 2, &led_blink_task_handle);
     xTaskCreate(bmp280_task_normal, "bmp280_task", 256, led_blink_task_handle, 2, NULL);
 }
