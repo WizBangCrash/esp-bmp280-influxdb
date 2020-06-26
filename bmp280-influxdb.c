@@ -14,7 +14,7 @@ const uint8_t scl_pin = 0;
 const uint8_t sda_pin = 2;
 
 const int led_pin = 13;
-bool led_blink = false;
+
 
 static void bmp280_task_normal(void *pvParameters)
 {
@@ -39,39 +39,38 @@ static void bmp280_task_normal(void *pvParameters)
         printf("BMP280: found %s\n", bme280p ? "BME280" : "BMP280");
 
         while(1) {
-            vTaskDelay(2000 / portTICK_PERIOD_MS);
+            vTaskDelay(5000 / portTICK_PERIOD_MS);
             if (!bmp280_read_float(&bmp280_dev, &temperature, &pressure, &humidity)) {
                 printf("Temperature/pressure reading failed\n");
                 break;
             }
-            printf("Pressure: %.2f Pa, Temperature: %.2f C", pressure, temperature);
-            led_blink = true;
-            if (bme280p)
-                printf(", Humidity: %.2f\n", humidity);
-            else
-                printf("\n");
+            printf("Pressure: %.2f Pa, Temperature: %.2f C\n", pressure, temperature);
+            // Wake up the LED blink task
+            vTaskResume( pvParameters );
         }
     }
 }
 
+//
+// Perform a brief flash of the LED when woken up
+// and then go back to sleep
+//
 void led_blink_task(void *pvParameters)
 {
     gpio_enable(led_pin, GPIO_OUTPUT);
 
     while (1) {
-        if (led_blink) {
-            gpio_write(led_pin, 1);
-            vTaskDelay(200 / portTICK_PERIOD_MS);
-            gpio_write(led_pin, 0);
-            led_blink = false;
-        }
-        vTaskDelay(500 / portTICK_PERIOD_MS);
+        vTaskSuspend(NULL);
+        gpio_write(led_pin, 1);
+        vTaskDelay(200 / portTICK_PERIOD_MS);
+        gpio_write(led_pin, 0);
     }
 }
 
 
 void user_init(void)
 {
+    TaskHandle_t led_blink_task_handle;
     uart_set_baud(0, 115200);
 
     // Just some information
@@ -81,6 +80,6 @@ void user_init(void)
 
     i2c_init(i2c_bus, scl_pin, sda_pin, I2C_FREQ_400K);
 
-    xTaskCreate(led_blink_task, "led_blink_task", 256, NULL, 2, NULL);
-    xTaskCreate(bmp280_task_normal, "bmp280_task", 256, NULL, 2, NULL);
+    xTaskCreate(led_blink_task, "led_blink_task", 256, NULL, 2, &led_blink_task_handle);
+    xTaskCreate(bmp280_task_normal, "bmp280_task", 256, led_blink_task_handle, 2, NULL);
 }
