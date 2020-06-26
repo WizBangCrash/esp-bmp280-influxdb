@@ -15,6 +15,7 @@
 				"${env:NODEMCU_DIR}",
 				"esp-rtos",
 				"make",
+				"-j4",
 				"-C",
 				"${workspaceFolderBasename}"
 			],
@@ -28,6 +29,33 @@
 				"kind": "build",
 				"isDefault": true
 			}
+		},
+		{
+			"type": "shell",
+			"label": "Test",
+			"command": "make",
+			"args": [
+				"-j4",
+				"test",
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"group": "none",
+			"problemMatcher": []
+		},
+		{
+			"type": "shell",
+			"label": "Monitor",
+			"command": "make",
+			"args": [
+				"monitor"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"group": "none",
+			"problemMatcher": []
 		}
 	]
 }
