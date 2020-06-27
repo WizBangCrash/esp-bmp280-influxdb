@@ -1,5 +1,5 @@
 PROGRAM=bmp280-influxdb
-EXTRA_COMPONENTS = extras/i2c extras/bmp280
+EXTRA_COMPONENTS = extras/i2c extras/bmp280 extras/sntp
 
 
 PROJGITSHORTREV=\"$(shell git rev-parse --short -q HEAD 2> /dev/null)\"
@@ -10,6 +10,7 @@ CPPFLAGS += -DPROJGITSHORTREV=$(PROJGITSHORTREV)
 
 # Debug Flags
 # CPPFLAGS += -DBMP280_INFLUX_DEBUG
+CPPFLAGS += -DconfigUSE_TRACE_FACILITY=1
 
 
 # Settings for the ESP Dev board
