@@ -92,7 +92,7 @@ void user_init(void)
     // Just some information
     printf("\n");
     printf("SDK version : %s\n", sdk_system_get_sdk_version());
-    printf("GIT version : %s\n", GITSHORTREV);
+    printf("GIT version : %s\n", PROJGITSHORTREV);
 
     i2c_init(i2c_bus, scl_pin, sda_pin, I2C_FREQ_400K);
 
