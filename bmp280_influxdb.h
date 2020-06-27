@@ -24,5 +24,7 @@ typedef struct biRESOURCES
 {
 	TaskHandle_t taskWriteInfluxdb;
 	TaskHandle_t taskLedBlink;
+	TaskHandle_t taskBMP280;
+	TaskHandle_t taskSNTP;
     Environment_t environment;
 } Resources_t;

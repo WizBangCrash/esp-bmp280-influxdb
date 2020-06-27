@@ -17,7 +17,8 @@
 			"esp_softap.h": "c",
 			"ostream": "c",
 			"sockets.h": "c",
-			"task.h": "c"
+			"task.h": "c",
+			"freertos.h": "c"
 		}
 	}
 }

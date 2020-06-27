@@ -12,6 +12,7 @@
 
 extern void write_influxdb_task();
 extern void bmp280_task_normal();
+extern void sntp_task();
 
 const int led_pin = 13;
 
@@ -37,7 +38,27 @@ void led_blink_task(void *pvParameters)
 }
 
 static Resources_t app_resources;
-//TODO: Add task to monitor memory usage
+
+#ifdef BMP280_INFLUX_DEBUG
+void stats_task(void *pvParameters)
+{
+// Periodically print out the stack space of each task
+    TaskStatus_t taskStatus;
+
+    while (1) {
+        vTaskGetInfo(app_resources.taskSNTP, &taskStatus, pdTRUE, eInvalid);
+        printf("SNTP: %d, ", taskStatus.usStackHighWaterMark);
+        vTaskGetInfo(app_resources.taskLedBlink, &taskStatus, pdTRUE, eInvalid);
+        printf("LED: %d, ", taskStatus.usStackHighWaterMark);
+        vTaskGetInfo(app_resources.taskWriteInfluxdb, &taskStatus, pdTRUE, eInvalid);
+        printf("Influx: %d, ", taskStatus.usStackHighWaterMark);
+        vTaskGetInfo(app_resources.taskBMP280, &taskStatus, pdTRUE, eInvalid);
+        printf("BMP: %d\n", taskStatus.usStackHighWaterMark);
+        vTaskDelayMs(60000);
+    }
+}
+#endif
+
 void user_init(void)
 {
     uart_set_baud(0, 115200);
@@ -56,7 +77,11 @@ void user_init(void)
     sdk_wifi_set_opmode(STATION_MODE);
     sdk_wifi_station_set_config(&config);
 
-    xTaskCreate(led_blink_task, "led_blink_task", 256, NULL, 2, &app_resources.taskLedBlink);
-    xTaskCreate(write_influxdb_task, "write_influxdb_task", 384, (void *)&app_resources, 2, &app_resources.taskWriteInfluxdb);
-    xTaskCreate(bmp280_task_normal, "bmp280_task", 256, (void *)&app_resources, 2, NULL);
+    xTaskCreate(sntp_task, "SNTP", 512, NULL, 1, &app_resources.taskSNTP);
+    xTaskCreate(led_blink_task, "led_blink", 128, NULL, 2, &app_resources.taskLedBlink);
+    xTaskCreate(write_influxdb_task, "write_influxdb", 384, (void *)&app_resources, 2, &app_resources.taskWriteInfluxdb);
+    xTaskCreate(bmp280_task_normal, "bmp280", 256, (void *)&app_resources, 2, &app_resources.taskBMP280);
+#ifdef BMP280_INFLUX_DEBUG
+    xTaskCreate(stats_task, "Stats", 1024, NULL, 1, NULL);
+#endif
 }
