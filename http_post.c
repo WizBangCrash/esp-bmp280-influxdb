@@ -21,6 +21,8 @@
 
 #include "ssid_config.h"
 
+#include "bmp280_influxdb.h"
+
 #define WEB_SERVER "dixnas1.lan"
 #define WEB_PORT "8086"
 #define WEB_PATH "/write?db=testdb"
@@ -38,7 +40,7 @@ struct addrinfo *resolve_hostname(char *hostname, char *port)
     };
 
     while(res == NULL) {
-        printf("Running DNS lookup for %s...", hostname);
+        debug("Running DNS lookup for %s...", hostname);
         int err = getaddrinfo(hostname, port, &hints, &res);
 
         if (err != 0 || res == NULL) {
@@ -51,7 +53,7 @@ struct addrinfo *resolve_hostname(char *hostname, char *port)
     }
     struct sockaddr *sa = res->ai_addr;
     if (sa->sa_family == AF_INET) {
-        printf("DNS lookup succeeded. IP=%s\n", inet_ntoa(((struct sockaddr_in *)sa)->sin_addr));
+        debug("DNS lookup succeeded. IP=%s\n", inet_ntoa(((struct sockaddr_in *)sa)->sin_addr));
     }
 
     return res;
@@ -110,6 +112,7 @@ void http_post_task(void *pvParameters)
             "\r\n"
             "%s"
             "\r\n", WEB_PATH, WEB_SERVER, buffer_size, value_buffer);
+
         if (write(s, req_buffer, strlen(req_buffer)) < 0) {
             printf("... socket send failed\r\n");
             close(s);
@@ -117,21 +120,14 @@ void http_post_task(void *pvParameters)
             continue;
         }
 
-        // static char recv_buf[128];
-        // int r;
-        // do {
-        //     bzero(recv_buf, 128);
-        //     r = read(s, recv_buf, 127);
-        //     if(r > 0) {
-        //         printf("%s", recv_buf);
-        //     }
-        // } while(r > 0);
+        // Check for a response
+        char *post_response = calloc(512, sizeof(char));
+        read(s, post_response, 511);
+        if (strstr(post_response, "204 No Content") == NULL || errno != 0) {
+            printf("%s\nerrno(%d)\n", post_response, errno);
+        }
+        free(post_response);
 
-        // printf("... done reading from socket. Last read return=%d errno=%d\r\n", r, errno);
-        // if(r != 0)
-        //     failures++;
-        // else
-        //     successes++;
         close(s);
     }
 }
