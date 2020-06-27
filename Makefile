@@ -2,7 +2,7 @@ PROGRAM=bmp280-influxdb
 EXTRA_COMPONENTS = extras/i2c extras/bmp280
 
 
-PROJGITSHORTREV=\"$(shell cd $(ROOT)$(PROGRAM); git rev-parse --short -q HEAD 2> /dev/null)\"
+PROJGITSHORTREV=\"$(shell git rev-parse --short -q HEAD 2> /dev/null)\"
 ifeq ($(PROJGITSHORTREV),\"\")
   PROJGITSHORTREV="\"(nogit)\"" # (same length as a short git hash)
 endif
@@ -24,3 +24,6 @@ monitor:
 dave:
 	echo $(ROOT)$(PROGRAM)
 	cd $(ROOT)$(PROGRAM); git rev-parse --short -q HEAD
+
+fred:
+	echo $(PROJGITSHORTREV)

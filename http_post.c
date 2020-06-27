@@ -41,7 +41,7 @@ struct addrinfo *resolve_hostname(char *hostname, char *port)
             printf("DNS lookup failed err=%d res=%p\r\n", err, res);
             if(res)
                 freeaddrinfo(res);
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            vTaskDelayMs(1000);
             continue;
         }
     }
@@ -68,7 +68,7 @@ void http_post_task(void *pvParameters)
         // Wait for Wifi Station Connection
         while (sdk_wifi_station_get_connect_status() != STATION_GOT_IP) {
             printf("Waiting for station connect...\n");
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            vTaskDelayMs(1000);
         }
 
         // Get IP address of hostname
@@ -78,7 +78,7 @@ void http_post_task(void *pvParameters)
         if(s < 0) {
             printf("... Failed to allocate socket.\r\n");
             freeaddrinfo(host_addrinfo);
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            vTaskDelayMs(1000);
             continue;
         }
 
@@ -86,7 +86,7 @@ void http_post_task(void *pvParameters)
             close(s);
             freeaddrinfo(host_addrinfo);
             printf("... socket connect failed.\r\n");
-            vTaskDelay(4000 / portTICK_PERIOD_MS);
+            vTaskDelayMs(4000);
             continue;
         }
 
@@ -110,7 +110,7 @@ void http_post_task(void *pvParameters)
             printf("... socket send failed\r\n");
             free(post_request);
             close(s);
-            vTaskDelay(4000 / portTICK_PERIOD_MS);
+            vTaskDelayMs(4000);
             continue;
         }
 

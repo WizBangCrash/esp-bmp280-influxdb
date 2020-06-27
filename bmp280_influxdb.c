@@ -41,7 +41,7 @@ void bmp280_task_normal(void *pvParameters)
     while (1) {
         while (!bmp280_init(&bmp280_dev, &params)) {
             printf("BMP280 initialization failed\n");
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            vTaskDelayMs(1000);
         }
 
 #ifdef BMP280_INFLUX_DEBUG
@@ -50,7 +50,7 @@ void bmp280_task_normal(void *pvParameters)
 #endif
 
         while(1) {
-            vTaskDelay(5000 / portTICK_PERIOD_MS);
+            vTaskDelayMs(5000);
             xTaskNotifyGive( task_list->taskLedBlink );
             if (!bmp280_read_float(&bmp280_dev, &environment->temperature, &environment->pressure, &environment->humidity)) {
                 printf("Temperature/pressure reading failed\n");
@@ -78,7 +78,7 @@ void led_blink_task(void *pvParameters)
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
         debug("Time to blink..\n");
         gpio_write(led_pin, 1);
-        vTaskDelay(200 / portTICK_PERIOD_MS);
+        vTaskDelayMs(200);
         gpio_write(led_pin, 0);
     }
 }

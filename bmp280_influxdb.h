@@ -9,6 +9,10 @@
 #define debug(fmt, ...)
 #endif
 
+// Ask for delay in milliseconds
+#define vTaskDelayMs(ms)	vTaskDelay((ms)/portTICK_PERIOD_MS)
+
+
 
 typedef struct biENVIRONMENT
 {
