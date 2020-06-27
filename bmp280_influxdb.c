@@ -52,8 +52,8 @@ static void bmp280_task_normal(void *pvParameters)
                 break;
             }
             printf("Pressure: %.2f Pa, Temperature: %.2f C\n", pressure, temperature);
-            // Wake up the LED blink task
-            vTaskResume( pvParameters );
+            // Pass control to the http_post_task
+            xTaskNotifyGive( pvParameters );
         }
     }
 }
@@ -74,10 +74,10 @@ void led_blink_task(void *pvParameters)
     }
 }
 
+static TaskHandle_t http_post_task_handle;
 
 void user_init(void)
 {
-    TaskHandle_t led_blink_task_handle;
     uart_set_baud(0, 115200);
 
     // Just some information
@@ -88,7 +88,6 @@ void user_init(void)
     i2c_init(i2c_bus, scl_pin, sda_pin, I2C_FREQ_400K);
 
     // xTaskCreate(led_blink_task, "led_blink_task", 256, NULL, 2, &led_blink_task_handle);
-    xTaskCreate(led_blink_task, "led_blink_task", 256, NULL, 2, NULL);
-    xTaskCreate(http_post_task, "post_task", 384, NULL, 2, &led_blink_task_handle);
-    xTaskCreate(bmp280_task_normal, "bmp280_task", 256, led_blink_task_handle, 2, NULL);
+    xTaskCreate(http_post_task, "http_post_task", 384, NULL, 2, &http_post_task_handle);
+    xTaskCreate(bmp280_task_normal, "bmp280_task", 256, http_post_task_handle, 2, NULL);
 }

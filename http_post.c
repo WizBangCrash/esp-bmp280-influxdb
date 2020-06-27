@@ -68,7 +68,7 @@ void http_post_task(void *pvParameters)
 
     while(1) {
         // Wait for a sensor reading to complete
-        vTaskSuspend(NULL);
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
         // Wait for Wifi Station Connection
         while (sdk_wifi_station_get_connect_status() != STATION_GOT_IP) {
