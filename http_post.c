@@ -63,12 +63,8 @@ void http_post_task(void *pvParameters)
 {
     struct addrinfo *host_addrinfo = NULL;
 
-    char *req_buffer;
     char value_buffer[50];
-    int buffer_size;
     printf("HTTP get task starting...\r\n");
-
-    req_buffer = malloc(1000);
 
     while(1) {
         // Wait for a sensor reading to complete
@@ -80,6 +76,7 @@ void http_post_task(void *pvParameters)
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
 
+        // Get IP address of hostname
         host_addrinfo = resolve_hostname(WEB_SERVER, WEB_PORT);
 
         int s = socket(host_addrinfo->ai_family, host_addrinfo->ai_socktype, 0);
@@ -101,9 +98,10 @@ void http_post_task(void *pvParameters)
         freeaddrinfo(host_addrinfo);
 
         // Build the influxdb data string
-        buffer_size = sprintf(value_buffer, "sensor,device=nodemcu pressure=%.2f,temperature=%.2f", pressure, temperature);
+        int buffer_size = sprintf(value_buffer, "sensor,device=nodemcu pressure=%.2f,temperature=%.2f", pressure, temperature);
         // Create the HTTP POST request
-        sprintf(req_buffer, "POST %s HTTP/1.1\r\n"
+        char *post_request = malloc(500);
+        sprintf(post_request, "POST %s HTTP/1.1\r\n"
             "Host: %s\r\n"
             "User-Agent: esp-open-rtos/0.1 esp8266\r\n"
             "Content-Type: application/octet-stream\r\n"
@@ -113,8 +111,9 @@ void http_post_task(void *pvParameters)
             "%s"
             "\r\n", WEB_PATH, WEB_SERVER, buffer_size, value_buffer);
 
-        if (write(s, req_buffer, strlen(req_buffer)) < 0) {
+        if (write(s, post_request, strlen(post_request)) < 0) {
             printf("... socket send failed\r\n");
+            free(post_request);
             close(s);
             vTaskDelay(4000 / portTICK_PERIOD_MS);
             continue;
@@ -127,6 +126,7 @@ void http_post_task(void *pvParameters)
             printf("%s\nerrno(%d)\n", post_response, errno);
         }
         free(post_response);
+        free(post_request);
 
         close(s);
     }
