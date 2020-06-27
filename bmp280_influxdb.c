@@ -9,6 +9,8 @@
 #include "i2c/i2c.h"
 #include "bmp280/bmp280.h"
 
+#include "bmp280_influxdb.h"
+
 extern void http_post_task();
 
 const uint8_t i2c_bus = 0;

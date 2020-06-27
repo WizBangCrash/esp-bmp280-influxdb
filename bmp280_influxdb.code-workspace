@@ -14,7 +14,9 @@
 		"files.associations": {
 			"*.json": "jsonc",
 			"esp_common.h": "c",
-			"esp_softap.h": "c"
+			"esp_softap.h": "c",
+			"ostream": "c",
+			"sockets.h": "c"
 		}
 	}
 }
