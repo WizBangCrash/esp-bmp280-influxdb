@@ -25,10 +25,6 @@
 #define WEB_PORT "8086"
 #define WEB_PATH "/write?db=testdb"
 
-extern float pressure, temperature;
-
-// sdk_wifi_station_get_connect_status
-
 struct addrinfo *resolve_hostname(char *hostname, char *port)
 {
     struct addrinfo *res = NULL;
@@ -59,6 +55,7 @@ struct addrinfo *resolve_hostname(char *hostname, char *port)
 
 void http_post_task(void *pvParameters)
 {
+    Environment_t *environment = &((Resources_t *)pvParameters)->environment;
     struct addrinfo *host_addrinfo = NULL;
 
     char value_buffer[50];
@@ -96,7 +93,7 @@ void http_post_task(void *pvParameters)
         freeaddrinfo(host_addrinfo);
 
         // Build the influxdb data string
-        int buffer_size = sprintf(value_buffer, "sensor,device=nodemcu pressure=%.2f,temperature=%.2f", pressure, temperature);
+        int buffer_size = sprintf(value_buffer, "sensor,device=nodemcu pressure=%.2f,temperature=%.2f", environment->pressure, environment->temperature);
         // Create the HTTP POST request
         char *post_request = malloc(500);
         sprintf(post_request, "POST %s HTTP/1.1\r\n"

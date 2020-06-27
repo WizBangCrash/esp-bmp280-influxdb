@@ -10,8 +10,15 @@
 #endif
 
 
-typedef struct biTASKS
+typedef struct biENVIRONMENT
 {
-	TaskHandle_t httpPost;
-	TaskHandle_t ledBlink;
-} TaskHandles_t;
+    float pressure;
+    float temperature;
+    float humidity;
+} Environment_t;
+typedef struct biRESOURCES
+{
+	TaskHandle_t taskHttpPost;
+	TaskHandle_t taskLedBlink;
+    Environment_t environment;
+} Resources_t;
