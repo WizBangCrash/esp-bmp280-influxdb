@@ -16,7 +16,8 @@
 			"esp_common.h": "c",
 			"esp_softap.h": "c",
 			"ostream": "c",
-			"sockets.h": "c"
+			"sockets.h": "c",
+			"task.h": "c"
 		}
 	}
 }
