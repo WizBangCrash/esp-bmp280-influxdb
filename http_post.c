@@ -19,8 +19,6 @@
 #include "lwip/netdb.h"
 #include "lwip/dns.h"
 
-#include "ssid_config.h"
-
 #include "bmp280_influxdb.h"
 
 #define WEB_SERVER "dixnas1.lan"
@@ -64,7 +62,7 @@ void http_post_task(void *pvParameters)
     struct addrinfo *host_addrinfo = NULL;
 
     char value_buffer[50];
-    printf("HTTP get task starting...\r\n");
+    debug("Initialising HTTP POST task...\n");
 
     while(1) {
         // Wait for a sensor reading to complete
@@ -131,22 +129,3 @@ void http_post_task(void *pvParameters)
         close(s);
     }
 }
-
-#ifdef NOTDEFINED
-void user_init(void)
-{
-    uart_set_baud(0, 115200);
-    printf("SDK version:%s\n", sdk_system_get_sdk_version());
-
-    struct sdk_station_config config = {
-        .ssid = WIFI_SSID,
-        .password = WIFI_PASS,
-    };
-
-    /* required to call wifi_set_opmode before station_set_config */
-    sdk_wifi_set_opmode(STATION_MODE);
-    sdk_wifi_station_set_config(&config);
-
-    xTaskCreate(&http_post_task, "post_task", 384, NULL, 2, NULL);
-}
-#endif

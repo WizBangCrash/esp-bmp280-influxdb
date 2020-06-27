@@ -9,3 +9,9 @@
 #define debug(fmt, ...)
 #endif
 
+
+typedef struct biTASKS
+{
+	TaskHandle_t httpPost;
+	TaskHandle_t ledBlink;
+} TaskHandles_t;
