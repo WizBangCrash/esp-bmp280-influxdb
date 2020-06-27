@@ -15,7 +15,6 @@
 				"${env:NODEMCU_DIR}",
 				"esp-rtos",
 				"make",
-				"-j4",
 				"-C",
 				"${workspaceFolderBasename}"
 			],
@@ -35,8 +34,8 @@
 			"label": "Test",
 			"command": "make",
 			"args": [
-				"-j4",
-				"test",
+				"flash",
+				"monitor"
 			],
 			"options": {
 				"cwd": "${workspaceFolder}"
