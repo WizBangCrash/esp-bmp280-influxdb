@@ -53,7 +53,7 @@ struct addrinfo *resolve_hostname(char *hostname, char *port)
     return res;
 }
 
-void http_post_task(void *pvParameters)
+void write_influxdb_task(void *pvParameters)
 {
     Environment_t *environment = &((Resources_t *)pvParameters)->environment;
     struct addrinfo *host_addrinfo = NULL;

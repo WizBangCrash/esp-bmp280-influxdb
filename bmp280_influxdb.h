@@ -22,7 +22,7 @@ typedef struct biENVIRONMENT
 } Environment_t;
 typedef struct biRESOURCES
 {
-	TaskHandle_t taskHttpPost;
+	TaskHandle_t taskWriteInfluxdb;
 	TaskHandle_t taskLedBlink;
     Environment_t environment;
 } Resources_t;
