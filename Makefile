@@ -8,6 +8,9 @@ ifeq ($(PROJGITSHORTREV),\"\")
 endif
 CPPFLAGS += -DPROJGITSHORTREV=$(PROJGITSHORTREV)
 
+# Debug Flags
+# CPPFLAGS += -DBMP280_INFLUX_DEBUG
+
 
 # Settings for the ESP Dev board
 FLASH_SIZE = 32
