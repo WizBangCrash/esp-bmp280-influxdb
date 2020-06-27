@@ -119,6 +119,7 @@ void http_post_task(void *pvParameters)
         read(s, post_response, 511);
         if (strstr(post_response, "204 No Content") == NULL || errno != 0) {
             printf("%s\nerrno(%d)\n", post_response, errno);
+            if (errno != 0) errno = 0;
         }
         free(post_response);
         free(post_request);
