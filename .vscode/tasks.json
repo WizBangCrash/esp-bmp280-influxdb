@@ -15,6 +15,7 @@
 				"${env:NODEMCU_DIR}",
 				"esp-rtos",
 				"make",
+				"-j2",
 				"-C",
 				"${workspaceFolderBasename}"
 			],
@@ -28,6 +29,32 @@
 				"kind": "build",
 				"isDefault": true
 			}
+		},
+		{
+			"type": "shell",
+			"label": "Clean",
+			"command": "/usr/local/bin/docker",
+			"args": [
+				"run",
+				"-it",
+				"--rm",
+				"-v",
+				"${env:NODEMCU_DIR}:${env:NODEMCU_DIR}",
+				"-w",
+				"${env:NODEMCU_DIR}",
+				"esp-rtos",
+				"make",
+				"-C",
+				"${workspaceFolderBasename}",
+				"clean"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
 		},
 		{
 			"type": "shell",
