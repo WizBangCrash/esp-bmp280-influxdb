@@ -9,6 +9,7 @@
 
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -53,16 +54,26 @@ struct addrinfo *resolve_hostname(char *hostname, char *port)
     return res;
 }
 
+#define INFLUXDB_DATA_LEN 100
+#define HTTP_POST_REQ_LEN 500
+
 void write_influxdb_task(void *pvParameters)
 {
     Environment_t *environment = &((Resources_t *)pvParameters)->environment;
     struct addrinfo *host_addrinfo = NULL;
 
-    char value_buffer[50];
+    char *value_buffer = malloc(INFLUXDB_DATA_LEN);
     debug("Initialising HTTP POST task...\n");
+
+    // Wait for time to be set
+    while (time(NULL) < 1593383378) {
+        debug("Waiting to time to be retrieved\n");
+        vTaskDelayMs(1000);
+    }
 
     while(1) {
         // Wait for a sensor reading to complete
+        debug("Wait for next sensor reading...\n")
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
         // Wait for Wifi Station Connection
@@ -93,10 +104,19 @@ void write_influxdb_task(void *pvParameters)
         freeaddrinfo(host_addrinfo);
 
         // Build the influxdb data string
-        int buffer_size = sprintf(value_buffer, "sensor,device=nodemcu pressure=%.2f,temperature=%.2f", environment->pressure, environment->temperature);
+#ifdef INCLUDE_TIME
+        // influxdb expects Unix epoch time in nanoseconds so add 9 zeros
+        int buffer_size = snprintf(value_buffer, INFLUXDB_DATA_LEN,\
+            "sensor,location=office,device=bmp280 pressure=%.2f,temperature=%.2f %ld000000000", \
+            environment->pressure, environment->temperature, (long)time(NULL));
+#else
+        int buffer_size = snprintf(value_buffer, INFLUXDB_DATA_LEN,\
+            "sensor,location=office,device=bmp280 pressure=%.2f,temperature=%.2f", \
+            environment->pressure, environment->temperature);
+#endif
         // Create the HTTP POST request
-        char *post_request = malloc(500);
-        sprintf(post_request, "POST %s HTTP/1.1\r\n"
+        char *post_request = malloc(HTTP_POST_REQ_LEN);
+        snprintf(post_request, HTTP_POST_REQ_LEN, "POST %s HTTP/1.1\r\n"
             "Host: %s\r\n"
             "User-Agent: esp-open-rtos/0.1 esp8266\r\n"
             "Content-Type: application/octet-stream\r\n"
@@ -106,6 +126,7 @@ void write_influxdb_task(void *pvParameters)
             "%s"
             "\r\n", WEB_PATH, WEB_SERVER, buffer_size, value_buffer);
 
+        debug("Request:\n%s", post_request);
         if (write(s, post_request, strlen(post_request)) < 0) {
             printf("... socket send failed\r\n");
             free(post_request);

@@ -44,19 +44,19 @@ void sntp_task(void *pvParameters)
 	/* Start SNTP */
 	printf("Starting SNTP... ");
 	/* SNTP will request an update each 5 minutes */
-	sntp_set_update_delay(10*60000);
-	/* Set GMT+1 zone, daylight savings off */
-	const struct timezone tz = {1*60, 0};
+	sntp_set_update_delay(5*60000);
+	/* Set GMT+0 zone, daylight savings on */
+	const struct timezone tz = {0, 0};
 	/* SNTP initialization */
 	sntp_initialize(&tz);
 	/* Servers must be configured right after initialization */
 	sntp_set_servers(servers, sizeof(servers) / sizeof(char*));
 	printf("DONE!\n");
 
-	/* Print date and time each 5 seconds */
+	/* Print date and time each 30 seconds */
 	while(1) {
 		vTaskDelayMs(30000);
 		time_t ts = time(NULL);
-		printf("TIME: %s", ctime(&ts));
+		printf("EPOCH: %ld, TIME: %s", (long)time(NULL), ctime(&ts));
 	}
 }
