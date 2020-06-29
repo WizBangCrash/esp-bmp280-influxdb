@@ -43,20 +43,20 @@ void sntp_task(void *pvParameters)
 
 	/* Start SNTP */
 	printf("Starting SNTP... ");
-	/* SNTP will request an update each 5 minutes */
-	sntp_set_update_delay(5*60000);
-	/* Set GMT+0 zone, daylight savings on */
-	const struct timezone tz = {0, 0};
-	/* SNTP initialization */
-	sntp_initialize(&tz);
+	// SNTP will request an update each 10 minutes
+	// My calculations how the RTC drifts about 600ms every 10mins
+	sntp_set_update_delay(10*60000);
+	// SNTP initialization
+	// Don't use timezone as this has not been implemented correctly in esp_open-rtos
+	sntp_initialize(NULL);
 	/* Servers must be configured right after initialization */
 	sntp_set_servers(servers, sizeof(servers) / sizeof(char*));
 	printf("DONE!\n");
 
-	/* Print date and time each 30 seconds */
+	/* Print date and time each 60 seconds */
 	while(1) {
-		vTaskDelayMs(30000);
+		vTaskDelayMs(60000);
 		time_t ts = time(NULL);
-		printf("EPOCH: %ld, TIME: %s", (long)time(NULL), ctime(&ts));
+		printf("EPOCH: %ld, GMT: %s", (long)time(NULL), ctime(&ts));
 	}
 }
