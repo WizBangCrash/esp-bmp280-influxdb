@@ -13,12 +13,13 @@
 
 #include "bmp280_influxdb.h"
 
-
+// TODO: Make these configurable outside this source file
 static const uint8_t i2c_bus = 0;
 static const uint8_t scl_pin = 0;
 static const uint8_t sda_pin = 2;
 
-
+// TODO: Investigate why this task needs so much stack memory
+// TODO: Use forced mode and only take a reading every 60 seconds
 void bmp280_task_normal(void *pvParameters)
 {
     Resources_t *task_list = (Resources_t *)pvParameters;
