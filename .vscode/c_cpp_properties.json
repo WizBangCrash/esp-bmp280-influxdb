@@ -1,14 +1,14 @@
 {
   "env": {
-    "myDefaultIncludePath": ["${workspaceFolder}", "${env:NODEMCU_DIR}/esp-open-rtos"]
+    "myDefaultIncludePath": ["${workspaceFolder}/**", "${env:NODEMCU_DIR}/esp-open-rtos/**"]
   },
   "configurations": [
     {
-      "name": "Mac",
-      "compilerPath": "",
+      "name": "esp-open-rtos",
+      "compilerPath": "/usr/bin/gcc",
       "intelliSenseMode": "gcc-x64",
       "includePath": ["${myDefaultIncludePath}"],
-      "defines": ["FOO", "BAR=100"],
+      "defines": [],
       "browse": {
         "path": ["${myDefaultIncludePath}"],
         "limitSymbolsToIncludedHeaders": true,
