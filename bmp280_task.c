@@ -18,7 +18,6 @@ static const uint8_t i2c_bus = 0;
 static const uint8_t scl_pin = 0;
 static const uint8_t sda_pin = 2;
 
-// TODO: Investigate why this task needs so much stack memory
 // TODO: Use forced mode and only take a reading every 60 seconds
 void bmp280_task_normal(void *pvParameters)
 {
@@ -50,7 +49,7 @@ void bmp280_task_normal(void *pvParameters)
 #endif
 
         while(1) {
-            vTaskDelayMs(5000);
+            vTaskDelayMs(10000);
             xTaskNotifyGive( task_list->taskLedBlink );
             if (!bmp280_read_float(&bmp280_dev, &environment->temperature, &environment->pressure, &environment->humidity)) {
                 printf("Temperature/pressure reading failed\n");
