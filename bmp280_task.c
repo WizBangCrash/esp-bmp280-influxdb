@@ -25,7 +25,7 @@ void bmp280_task_normal(void *pvParameters)
     Environment_t *environment = &task_list->environment;
     bmp280_params_t  params;
 
-    debug("Initialising BMP280 task...\n");
+    DEBUG("Initialising BMP280 task...");
 
     i2c_init(i2c_bus, scl_pin, sda_pin, I2C_FREQ_400K);
 
@@ -39,23 +39,23 @@ void bmp280_task_normal(void *pvParameters)
 
     while (1) {
         while (!bmp280_init(&bmp280_dev, &params)) {
-            printf("BMP280 initialization failed\n");
+            ERROR("BMP280 initialization failed");
             vTaskDelayMs(1000);
         }
 
 #ifdef BMP280_INFLUX_DEBUG
         bool bme280p = bmp280_dev.id == BME280_CHIP_ID;
-        printf("BMP280: found %s\n", bme280p ? "BME280" : "BMP280");
+        INFO("BMP280: found %s", bme280p ? "BME280" : "BMP280");
 #endif
 
         while(1) {
             vTaskDelayMs(10000);
             xTaskNotifyGive( task_list->taskLedBlink );
             if (!bmp280_read_float(&bmp280_dev, &environment->temperature, &environment->pressure, &environment->humidity)) {
-                printf("Temperature/pressure reading failed\n");
+                ERROR("Temperature/pressure reading failed");
                 break;
             }
-            printf("Pressure: %.2f Pa, Temperature: %.2f C\n", environment->pressure, environment->temperature);
+            INFO("Pressure: %.2f Pa, Temperature: %.2f C", environment->pressure, environment->temperature);
             // Pass control to the write_influxdb_task
             xTaskNotifyGive( task_list->taskWriteInfluxdb );
         }

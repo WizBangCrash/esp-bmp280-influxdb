@@ -24,13 +24,13 @@ const int led_pin = 13;
 // TODO: Use xTaskNotify to pass option for blink rate etc.
 void led_blink_task(void *pvParameters)
 {
-    debug("Initialising LED blink task\n");
+    DEBUG("Initialising LED blink task");
     gpio_enable(led_pin, GPIO_OUTPUT);
 
     while (1) {
         // Wait until I'm asked to flash the LED
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        debug("Time to blink..\n");
+        DEBUG("Time to blink..");
         gpio_write(led_pin, 1);
         vTaskDelayMs(200);
         gpio_write(led_pin, 0);
@@ -46,6 +46,7 @@ void stats_task(void *pvParameters)
     TaskStatus_t taskStatus;
 
     while (1) {
+        FREEHEAP();
         vTaskGetInfo(app_resources.taskSNTP, &taskStatus, pdTRUE, eInvalid);
         printf("SNTP: %d, ", taskStatus.usStackHighWaterMark);
         vTaskGetInfo(app_resources.taskLedBlink, &taskStatus, pdTRUE, eInvalid);

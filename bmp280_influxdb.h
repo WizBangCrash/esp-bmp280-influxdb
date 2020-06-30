@@ -1,13 +1,18 @@
 
+#include <stdio.h>
 
 // #define BMP280_INFLUX_DEBUG
 
 #ifdef BMP280_INFLUX_DEBUG
-#include <stdio.h>
-#define debug(fmt, ...) printf("%s" fmt "\n", "bmpinflux: ", ## __VA_ARGS__);
+#define DEBUG(fmt, ...)         printf("%s: " message "\n", __func__, ##__VA_ARGS__)
 #else
-#define debug(fmt, ...)
+#define DEBUG(fmt, ...)
 #endif
+
+#define INFO(message, ...)      printf(message "\n", ##__VA_ARGS__)
+#define ERROR(message, ...)     printf("! " message "\n", ##__VA_ARGS__)
+#define FREEHEAP()              printf("Free Heap: %d\n", xPortGetFreeHeapSize())
+
 
 // Ask for delay in milliseconds
 #define vTaskDelayMs(ms)	vTaskDelay((ms)/portTICK_PERIOD_MS)

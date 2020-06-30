@@ -35,11 +35,11 @@ struct addrinfo *resolve_hostname(char *hostname, char *port)
     };
 
     while(res == NULL) {
-        debug("Running DNS lookup for %s...", hostname);
+        DEBUG("Running DNS lookup for %s...", hostname);
         int err = getaddrinfo(hostname, port, &hints, &res);
 
         if (err != 0 || res == NULL) {
-            printf("DNS lookup failed err=%d res=%p\r\n", err, res);
+            ERROR("DNS lookup failed err=%d res=%p", err, res);
             if(res)
                 freeaddrinfo(res);
             vTaskDelayMs(1000);
@@ -48,7 +48,7 @@ struct addrinfo *resolve_hostname(char *hostname, char *port)
     }
     struct sockaddr *sa = res->ai_addr;
     if (sa->sa_family == AF_INET) {
-        debug("DNS lookup succeeded. IP=%s\n", inet_ntoa(((struct sockaddr_in *)sa)->sin_addr));
+        DEBUG("DNS lookup succeeded. IP=%s", inet_ntoa(((struct sockaddr_in *)sa)->sin_addr));
     }
 
     return res;
@@ -63,22 +63,22 @@ void write_influxdb_task(void *pvParameters)
     struct addrinfo *host_addrinfo = NULL;
 
     char *value_buffer = malloc(INFLUXDB_DATA_LEN);
-    debug("Initialising HTTP POST task...\n");
+    DEBUG("Initialising HTTP POST task...");
 
     // Wait for time to be set
     while (time(NULL) < 1593383378) {
-        debug("Waiting to time to be retrieved\n");
+        DEBUG("Waiting to time to be retrieved");
         vTaskDelayMs(1000);
     }
 
     while(1) {
         // Wait for a sensor reading to complete
-        debug("Wait for next sensor reading...\n")
+        DEBUG("Wait for next sensor reading...")
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
         // Wait for Wifi Station Connection
         while (sdk_wifi_station_get_connect_status() != STATION_GOT_IP) {
-            printf("Waiting for station connect...\n");
+            INFO("Waiting for station connect...");
             vTaskDelayMs(1000);
         }
 
@@ -87,7 +87,7 @@ void write_influxdb_task(void *pvParameters)
 
         int s = socket(host_addrinfo->ai_family, host_addrinfo->ai_socktype, 0);
         if(s < 0) {
-            printf("... Failed to allocate socket.\r\n");
+            ERROR("... Failed to allocate socket.");
             freeaddrinfo(host_addrinfo);
             vTaskDelayMs(1000);
             continue;
@@ -96,7 +96,7 @@ void write_influxdb_task(void *pvParameters)
         if(connect(s, host_addrinfo->ai_addr, host_addrinfo->ai_addrlen) != 0) {
             close(s);
             freeaddrinfo(host_addrinfo);
-            printf("... socket connect failed.\r\n");
+            ERROR("... socket connect failed.");
             vTaskDelayMs(4000);
             continue;
         }
@@ -104,14 +104,15 @@ void write_influxdb_task(void *pvParameters)
         freeaddrinfo(host_addrinfo);
 
         // Build the influxdb data string
+#define INCLUDE_TIME
 #ifdef INCLUDE_TIME
         // influxdb expects Unix epoch time in nanoseconds so add 9 zeros
-        int buffer_size = snprintf(value_buffer, INFLUXDB_DATA_LEN,\
-            "sensor,location=office,device=bmp280 pressure=%.2f,temperature=%.2f %ld000000000", \
+        int buffer_size = snprintf(value_buffer, INFLUXDB_DATA_LEN,
+            "sensor,location=office,device=bmp280 pressure=%.2f,temperature=%.2f %ld000000000",
             environment->pressure, environment->temperature, (long)time(NULL));
 #else
-        int buffer_size = snprintf(value_buffer, INFLUXDB_DATA_LEN,\
-            "sensor,location=office,device=bmp280 pressure=%.2f,temperature=%.2f", \
+        int buffer_size = snINFO(value_buffer, INFLUXDB_DATA_LEN,
+            "sensor,location=office,device=bmp280 pressure=%.2f,temperature=%.2f",
             environment->pressure, environment->temperature);
 #endif
         // Create the HTTP POST request
@@ -126,9 +127,9 @@ void write_influxdb_task(void *pvParameters)
             "%s"
             "\r\n", WEB_PATH, WEB_SERVER, buffer_size, value_buffer);
 
-        debug("Request:\n%s", post_request);
+        DEBUG("Request:\n%s", post_request);
         if (write(s, post_request, strlen(post_request)) < 0) {
-            printf("... socket send failed\r\n");
+            ERROR("... socket send failed");
             free(post_request);
             close(s);
             vTaskDelayMs(4000);
@@ -139,7 +140,7 @@ void write_influxdb_task(void *pvParameters)
         char *post_response = calloc(512, sizeof(char));
         read(s, post_response, 511);
         if (strstr(post_response, "204 No Content") == NULL || errno != 0) {
-            printf("%s\nerrno(%d)\n", post_response, errno);
+            ERROR("%s\nerrno(%d)", post_response, errno);
             if (errno != 0) errno = 0;
         }
         free(post_response);
