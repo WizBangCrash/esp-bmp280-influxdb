@@ -12,7 +12,7 @@
       "browse": {
         "path": ["${myDefaultIncludePath}"],
         "limitSymbolsToIncludedHeaders": true,
-        "databaseFilename": ""
+        "databaseFilename": "${env:HOME}/.vscode-dbs/bmp280_influxdb.db"
       }
     }
   ],
