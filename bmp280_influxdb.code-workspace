@@ -29,7 +29,16 @@
 			"*.tcc": "c",
 			"string": "c",
 			"vector": "c",
-			"bmp280_influxdb.h": "c"
-		}
+			"bmp280_influxdb.h": "c",
+			"cstring": "cpp",
+			"typeinfo": "cpp"
+		},
+		"cSpell.words": [
+			"cstring",
+			"ostream",
+			"sntp",
+			"typeinfo",
+			"wifi"
+		]
 	}
 }
