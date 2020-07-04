@@ -18,7 +18,18 @@
 			"ostream": "c",
 			"sockets.h": "c",
 			"task.h": "c",
-			"freertos.h": "c"
+			"freertos.h": "c",
+			"time.h": "c",
+			"__debug": "c",
+			"unordered_map": "c",
+			"bit": "c",
+			"array": "c",
+			"bitset": "c",
+			"deque": "c",
+			"*.tcc": "c",
+			"string": "c",
+			"vector": "c",
+			"bmp280_influxdb.h": "c"
 		}
 	}
 }

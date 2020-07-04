@@ -1,13 +1,6 @@
 
 #include <stdio.h>
 
-// #define BMP280_INFLUX_DEBUG
-
-#ifdef BMP280_INFLUX_DEBUG
-#define DEBUG(fmt, ...)         printf("%s: " message "\n", __func__, ##__VA_ARGS__)
-#else
-#define DEBUG(fmt, ...)
-#endif
 
 #define INFO(message, ...)      printf(message "\n", ##__VA_ARGS__)
 #define ERROR(message, ...)     printf("! " message "\n", ##__VA_ARGS__)

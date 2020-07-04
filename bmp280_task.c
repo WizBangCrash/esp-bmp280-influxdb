@@ -13,6 +13,16 @@
 
 #include "bmp280_influxdb.h"
 
+//#define BMP280_DEBUG true
+
+#ifdef BMP280_DEBUG
+#include <stdio.h>
+#define debug(fmt, ...) printf("%s: " fmt "\n", __func__, ## __VA_ARGS__)
+#else
+#define debug(fmt, ...)
+#endif
+
+
 // TODO: Make these configurable outside this source file
 static const uint8_t i2c_bus = 0;
 static const uint8_t scl_pin = 0;
@@ -25,7 +35,7 @@ void bmp280_task_normal(void *pvParameters)
     Environment_t *environment = &task_list->environment;
     bmp280_params_t  params;
 
-    DEBUG("Initialising BMP280 task...");
+    debug("Initialising BMP280 task...");
 
     i2c_init(i2c_bus, scl_pin, sda_pin, I2C_FREQ_400K);
 
@@ -43,7 +53,7 @@ void bmp280_task_normal(void *pvParameters)
             vTaskDelayMs(1000);
         }
 
-#ifdef BMP280_INFLUX_DEBUG
+#ifdef BMP280_DEBUG
         bool bme280p = bmp280_dev.id == BME280_CHIP_ID;
         INFO("BMP280: found %s", bme280p ? "BME280" : "BMP280");
 #endif

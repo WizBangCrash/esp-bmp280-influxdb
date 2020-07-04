@@ -22,6 +22,16 @@
 
 #include "bmp280_influxdb.h"
 
+//#define INFLUX_DEBUG true
+
+#ifdef INFLUX_DEBUG
+#include <stdio.h>
+#define debug(fmt, ...) printf("%s: " fmt "\n", __func__, ## __VA_ARGS__)
+#else
+#define debug(fmt, ...)
+#endif
+
+
 #define WEB_SERVER "dixnas1.lan"
 #define WEB_PORT "8086"
 #define WEB_PATH "/write?db=testdb"
@@ -35,7 +45,7 @@ struct addrinfo *resolve_hostname(char *hostname, char *port)
     };
 
     while(res == NULL) {
-        DEBUG("Running DNS lookup for %s...", hostname);
+        debug("Running DNS lookup for %s...", hostname);
         int err = getaddrinfo(hostname, port, &hints, &res);
 
         if (err != 0 || res == NULL) {
@@ -48,7 +58,7 @@ struct addrinfo *resolve_hostname(char *hostname, char *port)
     }
     struct sockaddr *sa = res->ai_addr;
     if (sa->sa_family == AF_INET) {
-        DEBUG("DNS lookup succeeded. IP=%s", inet_ntoa(((struct sockaddr_in *)sa)->sin_addr));
+        debug("DNS lookup succeeded. IP=%s", inet_ntoa(((struct sockaddr_in *)sa)->sin_addr));
     }
 
     return res;
@@ -63,17 +73,17 @@ void write_influxdb_task(void *pvParameters)
     struct addrinfo *host_addrinfo = NULL;
 
     char *value_buffer = malloc(INFLUXDB_DATA_LEN);
-    DEBUG("Initialising HTTP POST task...");
+    debug("Initialising HTTP POST task...");
 
     // Wait for time to be set
     while (time(NULL) < 1593383378) {
-        DEBUG("Waiting to time to be retrieved");
+        debug("Waiting to time to be retrieved");
         vTaskDelayMs(1000);
     }
 
     while(1) {
         // Wait for a sensor reading to complete
-        DEBUG("Wait for next sensor reading...")
+        debug("Wait for next sensor reading...")
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
         // Wait for Wifi Station Connection
@@ -104,7 +114,6 @@ void write_influxdb_task(void *pvParameters)
         freeaddrinfo(host_addrinfo);
 
         // Build the influxdb data string
-#define INCLUDE_TIME
 #ifdef INCLUDE_TIME
         // influxdb expects Unix epoch time in nanoseconds so add 9 zeros
         int buffer_size = snprintf(value_buffer, INFLUXDB_DATA_LEN,
@@ -127,7 +136,7 @@ void write_influxdb_task(void *pvParameters)
             "%s"
             "\r\n", WEB_PATH, WEB_SERVER, buffer_size, value_buffer);
 
-        DEBUG("Request:\n%s", post_request);
+        debug("Request:\n%s", post_request);
         if (write(s, post_request, strlen(post_request)) < 0) {
             ERROR("... socket send failed");
             free(post_request);

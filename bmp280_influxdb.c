@@ -10,6 +10,16 @@
 
 #include "bmp280_influxdb.h"
 
+//#define BMPINFLUX_DEBUG true
+
+#ifdef BMPINFLUX_DEBUG
+#include <stdio.h>
+#define debug(fmt, ...) printf("%s: " fmt "\n", __func__, ## __VA_ARGS__)
+#else
+#define debug(fmt, ...)
+#endif
+
+
 extern void write_influxdb_task();
 extern void bmp280_task_normal();
 extern void sntp_task();
@@ -24,13 +34,13 @@ const int led_pin = 13;
 // TODO: Use xTaskNotify to pass option for blink rate etc.
 void led_blink_task(void *pvParameters)
 {
-    DEBUG("Initialising LED blink task");
+    debug("Initialising LED blink task");
     gpio_enable(led_pin, GPIO_OUTPUT);
 
     while (1) {
         // Wait until I'm asked to flash the LED
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        DEBUG("Time to blink..");
+        debug("Time to blink..");
         gpio_write(led_pin, 1);
         vTaskDelayMs(200);
         gpio_write(led_pin, 0);
@@ -39,12 +49,14 @@ void led_blink_task(void *pvParameters)
 
 static Resources_t app_resources;
 
-#ifdef BMP280_INFLUX_DEBUG
-void stats_task(void *pvParameters)
-{
+#ifdef BMPINFLUX_DEBUG
 // Periodically print out the stack space of each task
+void
+stats_task(void *pvParameters)
+{
     TaskStatus_t taskStatus;
 
+    debug("Initialising stats task");
     while (1) {
         FREEHEAP();
         vTaskGetInfo(app_resources.taskSNTP, &taskStatus, pdTRUE, eInvalid);
@@ -60,7 +72,8 @@ void stats_task(void *pvParameters)
 }
 #endif
 
-void user_init(void)
+void
+user_init(void)
 {
     uart_set_baud(0, 115200);
 
@@ -79,10 +92,10 @@ void user_init(void)
     sdk_wifi_station_set_config(&config);
 
     xTaskCreate(sntp_task, "SNTP", 512, NULL, 1, &app_resources.taskSNTP);
-    xTaskCreate(led_blink_task, "led_blink", 128, NULL, 2, &app_resources.taskLedBlink);
+    xTaskCreate(led_blink_task, "led_blink", 256, NULL, 2, &app_resources.taskLedBlink);
     xTaskCreate(write_influxdb_task, "write_influxdb", 384, (void *)&app_resources, 2, &app_resources.taskWriteInfluxdb);
-    xTaskCreate(bmp280_task_normal, "bmp280", 256, (void *)&app_resources, 2, &app_resources.taskBMP280);
-#ifdef BMP280_INFLUX_DEBUG
+    xTaskCreate(bmp280_task_normal, "bmp280", 384, (void *)&app_resources, 2, &app_resources.taskBMP280);
+#ifdef BMPINFLUX_DEBUG
     xTaskCreate(stats_task, "Stats", 1024, NULL, 1, NULL);
 #endif
 }
