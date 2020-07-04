@@ -1,0 +1,22 @@
+{
+    "WiFi": {
+        "ssid": "HaDevs",
+        "password": "homeautodevices"
+    },
+    "location": "office",
+    "ledGPIO": 13,
+    "Sensor": {
+        "type": "bmp280",
+        "i2cBus": 0,
+        "slcPin": 0,
+        "sdcPin": 2,
+        "readRate": 60
+    },
+    "influxdb": {
+        "server": "dixnas1.lan",
+        "port": 8086,
+        "db": "testdb",
+        "postRate": 60,
+        "includeTime": true
+    }
+}
