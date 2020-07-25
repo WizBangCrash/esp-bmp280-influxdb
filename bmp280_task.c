@@ -13,7 +13,7 @@
 
 #include "bmp280_influxdb.h"
 
-//#define BMP280_DEBUG true
+// #define BMP280_DEBUG true
 
 #ifdef BMP280_DEBUG
 #include <stdio.h>
@@ -45,7 +45,7 @@ void bmp280_task_normal(void *pvParameters)
 
     bmp280_t bmp280_dev;
     bmp280_dev.i2c_dev.bus = i2c_bus;
-    bmp280_dev.i2c_dev.addr = BMP280_I2C_ADDRESS_0;
+    bmp280_dev.i2c_dev.addr = BMP280_I2C_ADDRESS_1;
 
     while (1) {
         while (!bmp280_init(&bmp280_dev, &params)) {
@@ -65,7 +65,7 @@ void bmp280_task_normal(void *pvParameters)
                 ERROR("Temperature/pressure reading failed");
                 break;
             }
-            INFO("Pressure: %.2f Pa, Temperature: %.2f C", environment->pressure, environment->temperature);
+            INFO("Pressure: %.2f Pa, Temperature: %.2f C, Humidity: %.2f %RH", environment->pressure, environment->temperature, environment->humidity);
             // Pass control to the write_influxdb_task
             xTaskNotifyGive( task_list->taskWriteInfluxdb );
         }

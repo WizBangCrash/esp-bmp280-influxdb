@@ -22,7 +22,7 @@
 
 #include "bmp280_influxdb.h"
 
-//#define INFLUX_DEBUG true
+// #define INFLUX_DEBUG true
 
 #ifdef INFLUX_DEBUG
 #include <stdio.h>
@@ -64,7 +64,7 @@ struct addrinfo *resolve_hostname(char *hostname, char *port)
     return res;
 }
 
-#define INFLUXDB_DATA_LEN 100
+#define INFLUXDB_DATA_LEN 201
 #define HTTP_POST_REQ_LEN 500
 
 void write_influxdb_task(void *pvParameters)
@@ -75,15 +75,17 @@ void write_influxdb_task(void *pvParameters)
     char *value_buffer = malloc(INFLUXDB_DATA_LEN);
     debug("Initialising HTTP POST task...");
 
+#ifdef INCLUDE_TIME
     // Wait for time to be set
     while (time(NULL) < 1593383378) {
-        debug("Waiting to time to be retrieved");
+        debug("Waiting for time to be retrieved via NTP");
         vTaskDelayMs(1000);
     }
+#endif
 
     while(1) {
         // Wait for a sensor reading to complete
-        debug("Wait for next sensor reading...")
+        debug("Wait for next sensor reading...");
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
         // Wait for Wifi Station Connection
@@ -117,19 +119,19 @@ void write_influxdb_task(void *pvParameters)
 #ifdef INCLUDE_TIME
         // influxdb expects Unix epoch time in nanoseconds so add 9 zeros
         int buffer_size = snprintf(value_buffer, INFLUXDB_DATA_LEN,
-            "sensor,location=office,device=bmp280 pressure=%.2f,temperature=%.2f %ld000000000",
+            "sensor,location=office,device=nodeMCU,type=bmp280 pressure=%.2f,temperature=%.2f %ld000000000",
             environment->pressure, environment->temperature, (long)time(NULL));
 #else
-        int buffer_size = snINFO(value_buffer, INFLUXDB_DATA_LEN,
-            "sensor,location=office,device=bmp280 pressure=%.2f,temperature=%.2f",
-            environment->pressure, environment->temperature);
+        int buffer_size = snprintf(value_buffer, INFLUXDB_DATA_LEN,
+            "sensor,location=office,device=nodeMCU,type=bme280 pressure=%.2f,temperature=%.2f,humidity=%.2f",
+            environment->pressure, environment->temperature, environment->humidity);
 #endif
         // Create the HTTP POST request
         char *post_request = malloc(HTTP_POST_REQ_LEN);
         snprintf(post_request, HTTP_POST_REQ_LEN, "POST %s HTTP/1.1\r\n"
             "Host: %s\r\n"
-            "User-Agent: esp-open-rtos/0.1 esp8266\r\n"
-            "Content-Type: application/octet-stream\r\n"
+            "User-Agent: bmp280_influxdb/0.1 esp8266\r\n"
+            "Content-type: text/html\r\n"
             "Content-Length: %d\r\n"
             "Connection: close\r\n"
             "\r\n"
@@ -151,6 +153,8 @@ void write_influxdb_task(void *pvParameters)
         if (strstr(post_response, "204 No Content") == NULL || errno != 0) {
             ERROR("%s\nerrno(%d)", post_response, errno);
             if (errno != 0) errno = 0;
+        } else {
+            debug("Response: %s", post_response);
         }
         free(post_response);
         free(post_request);

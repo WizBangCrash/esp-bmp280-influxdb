@@ -22,7 +22,9 @@
 
 extern void write_influxdb_task();
 extern void bmp280_task_normal();
+#ifdef INCLUDE_TIME
 extern void sntp_task();
+#endif
 
 const int led_pin = 13;
 
@@ -59,8 +61,10 @@ stats_task(void *pvParameters)
     debug("Initialising stats task");
     while (1) {
         FREEHEAP();
+#ifdef INCLUDE_TIME
         vTaskGetInfo(app_resources.taskSNTP, &taskStatus, pdTRUE, eInvalid);
         printf("SNTP: %d, ", taskStatus.usStackHighWaterMark);
+#endif
         vTaskGetInfo(app_resources.taskLedBlink, &taskStatus, pdTRUE, eInvalid);
         printf("LED: %d, ", taskStatus.usStackHighWaterMark);
         vTaskGetInfo(app_resources.taskWriteInfluxdb, &taskStatus, pdTRUE, eInvalid);
@@ -91,7 +95,9 @@ user_init(void)
     sdk_wifi_set_opmode(STATION_MODE);
     sdk_wifi_station_set_config(&config);
 
+#ifdef INCLUDE_TIME
     xTaskCreate(sntp_task, "SNTP", 512, NULL, 1, &app_resources.taskSNTP);
+#endif
     xTaskCreate(led_blink_task, "led_blink", 256, NULL, 2, &app_resources.taskLedBlink);
     xTaskCreate(write_influxdb_task, "write_influxdb", 384, (void *)&app_resources, 2, &app_resources.taskWriteInfluxdb);
     xTaskCreate(bmp280_task_normal, "bmp280", 384, (void *)&app_resources, 2, &app_resources.taskBMP280);

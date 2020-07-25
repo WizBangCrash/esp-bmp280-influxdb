@@ -31,6 +31,7 @@
 
 #define UNUSED_ARG(x)	(void)x
 
+#ifdef INCLUDE_TIME
 void sntp_task(void *pvParameters)
 {
 	const char *servers[] = {SNTP_SERVERS};
@@ -60,3 +61,4 @@ void sntp_task(void *pvParameters)
 		printf("EPOCH: %ld, GMT: %s", (long)time(NULL), ctime(&ts));
 	}
 }
+#endif
