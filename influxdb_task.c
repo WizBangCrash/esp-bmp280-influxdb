@@ -20,16 +20,8 @@
 #include "lwip/netdb.h"
 #include "lwip/dns.h"
 
+// #define APP_DEBUG true
 #include "bmp280_influxdb.h"
-
-// #define INFLUX_DEBUG true
-
-#ifdef INFLUX_DEBUG
-#include <stdio.h>
-#define debug(fmt, ...) printf("%s: " fmt "\n", __func__, ## __VA_ARGS__)
-#else
-#define debug(fmt, ...)
-#endif
 
 
 #define WEB_SERVER "dixnas1.lan"
@@ -75,14 +67,6 @@ void write_influxdb_task(void *pvParameters)
     char *value_buffer = malloc(INFLUXDB_DATA_LEN);
     debug("Initialising HTTP POST task...");
 
-#ifdef INCLUDE_TIME
-    // Wait for time to be set
-    while (time(NULL) < 1593383378) {
-        debug("Waiting for time to be retrieved via NTP");
-        vTaskDelayMs(1000);
-    }
-#endif
-
     while(1) {
         // Wait for a sensor reading to complete
         debug("Wait for next sensor reading...");
@@ -116,16 +100,11 @@ void write_influxdb_task(void *pvParameters)
         freeaddrinfo(host_addrinfo);
 
         // Build the influxdb data string
-#ifdef INCLUDE_TIME
         // influxdb expects Unix epoch time in nanoseconds so add 9 zeros
         int buffer_size = snprintf(value_buffer, INFLUXDB_DATA_LEN,
-            "sensor,location=office,device=nodeMCU,type=bmp280 pressure=%.2f,temperature=%.2f %ld000000000",
-            environment->pressure, environment->temperature, (long)time(NULL));
-#else
-        int buffer_size = snprintf(value_buffer, INFLUXDB_DATA_LEN,
-            "sensor,location=office,device=nodeMCU,type=bme280 pressure=%.2f,temperature=%.2f,humidity=%.2f",
-            environment->pressure, environment->temperature, environment->humidity);
-#endif
+            "sensor,location=office,device=nodeMCU,type=bme280 pressure=%.2f,temperature=%.2f,humidity=%.2f %ld000000000",
+            environment->pressure, environment->temperature, environment->humidity, (long)time(NULL));
+
         // Create the HTTP POST request
         char *post_request = malloc(HTTP_POST_REQ_LEN);
         snprintf(post_request, HTTP_POST_REQ_LEN, "POST %s HTTP/1.1\r\n"

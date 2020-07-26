@@ -9,18 +9,8 @@
 #include "i2c/i2c.h"
 #include "bmp280/bmp280.h"
 
-#include "ssid_config.h"
-
+// #define APP_DEBUG true
 #include "bmp280_influxdb.h"
-
-// #define BMP280_DEBUG true
-
-#ifdef BMP280_DEBUG
-#include <stdio.h>
-#define debug(fmt, ...) printf("%s: " fmt "\n", __func__, ## __VA_ARGS__)
-#else
-#define debug(fmt, ...)
-#endif
 
 
 // TODO: Make these configurable outside this source file
@@ -65,7 +55,7 @@ void bmp280_task_normal(void *pvParameters)
                 ERROR("Temperature/pressure reading failed");
                 break;
             }
-            INFO("Pressure: %.2f Pa, Temperature: %.2f C, Humidity: %.2f %RH", environment->pressure, environment->temperature, environment->humidity);
+            INFO("Pressure: %.2f Pa, Temperature: %.2f C, Humidity: %.2f %%RH", environment->pressure, environment->temperature, environment->humidity);
             // Pass control to the write_influxdb_task
             xTaskNotifyGive( task_list->taskWriteInfluxdb );
         }

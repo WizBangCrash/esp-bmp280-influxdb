@@ -31,7 +31,14 @@
 			"vector": "c",
 			"bmp280_influxdb.h": "c",
 			"cstring": "cpp",
-			"typeinfo": "cpp"
+			"typeinfo": "cpp",
+			"ssid_config.h": "c",
+			"private_ssid_config.h": "c",
+			"freertosconfig.h": "c",
+			"esp_wifi.h": "c",
+			"ip_addr.h": "c",
+			"system_error": "c",
+			"sntp.h": "c"
 		},
 		"cSpell.words": [
 			"cstring",
