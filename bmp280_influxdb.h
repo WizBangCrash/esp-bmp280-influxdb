@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <time.h>
 
 
 #define INFO(message, ...)      printf(message "\n", ##__VA_ARGS__)
@@ -17,17 +18,21 @@
 #define vTaskDelayMs(ms)	vTaskDelay((ms)/portTICK_PERIOD_MS)
 
 
-
-typedef struct biENVIRONMENT
+//
+// Structure defining the sensor reading message passed to influxdb task
+//
+typedef struct biSENSORREADING
 {
+    time_t readingTime;
     float pressure;
     float temperature;
     float humidity;
-} Environment_t;
+} SensorReading_t;
+
 typedef struct biRESOURCES
 {
+    QueueHandle_t sensorQueue;
 	TaskHandle_t taskWriteInfluxdb;
 	TaskHandle_t taskLedBlink;
 	TaskHandle_t taskBMP280;
-    Environment_t environment;
 } Resources_t;

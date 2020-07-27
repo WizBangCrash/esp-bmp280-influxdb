@@ -13,6 +13,7 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
 
 #include "lwip/err.h"
 #include "lwip/sockets.h"
@@ -58,26 +59,32 @@ struct addrinfo *resolve_hostname(char *hostname, char *port)
 
 #define INFLUXDB_DATA_LEN 201
 #define HTTP_POST_REQ_LEN 500
+#if( INCLUDE_vTaskSuspend != 1 )
+    #error INCLUDE_vTaskSuspend must be set to 1 if configUSE_TICKLESS_IDLE is not set to 0
+#endif /* INCLUDE_vTaskSuspend */
+
 
 void write_influxdb_task(void *pvParameters)
 {
-    Environment_t *environment = &((Resources_t *)pvParameters)->environment;
+    Resources_t *task_list = (Resources_t *)pvParameters;
     struct addrinfo *host_addrinfo = NULL;
 
     char *value_buffer = malloc(INFLUXDB_DATA_LEN);
     debug("Initialising HTTP POST task...");
 
+    // TODO: peek the queue and resolve IPs before taking values off
     while(1) {
+        SensorReading_t sensor_reading;
+
         // Wait for a sensor reading to complete
         debug("Wait for next sensor reading...");
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
-        // Wait for Wifi Station Connection
-        while (sdk_wifi_station_get_connect_status() != STATION_GOT_IP) {
-            INFO("Waiting for station connect...");
-            vTaskDelayMs(1000);
+        if (xQueueReceive(task_list->sensorQueue, &sensor_reading, portMAX_DELAY) != pdPASS) {
+            INFO("No message was returned from the queue");
+            continue;
         }
+        // ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
+        // TODO: Handle cases where this section can fail
         // Get IP address of hostname
         host_addrinfo = resolve_hostname(WEB_SERVER, WEB_PORT);
 
@@ -103,7 +110,7 @@ void write_influxdb_task(void *pvParameters)
         // influxdb expects Unix epoch time in nanoseconds so add 9 zeros
         int buffer_size = snprintf(value_buffer, INFLUXDB_DATA_LEN,
             "sensor,location=office,device=nodeMCU,type=bme280 pressure=%.2f,temperature=%.2f,humidity=%.2f %ld000000000",
-            environment->pressure, environment->temperature, environment->humidity, (long)time(NULL));
+            sensor_reading.pressure, sensor_reading.temperature, sensor_reading.humidity, (long)sensor_reading.readingTime);
 
         // Create the HTTP POST request
         char *post_request = malloc(HTTP_POST_REQ_LEN);

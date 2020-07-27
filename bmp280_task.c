@@ -5,6 +5,7 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
 
 #include "i2c/i2c.h"
 #include "bmp280/bmp280.h"
@@ -22,7 +23,6 @@ static const uint8_t sda_pin = 2;
 void bmp280_task_normal(void *pvParameters)
 {
     Resources_t *task_list = (Resources_t *)pvParameters;
-    Environment_t *environment = &task_list->environment;
     bmp280_params_t  params;
 
     debug("Initialising BMP280 task...");
@@ -49,15 +49,24 @@ void bmp280_task_normal(void *pvParameters)
 #endif
 
         while(1) {
+            QueueHandle_t xQueue = task_list->sensorQueue;
+            SensorReading_t sensor_reading;
+
             vTaskDelayMs(10000);
             xTaskNotifyGive( task_list->taskLedBlink );
-            if (!bmp280_read_float(&bmp280_dev, &environment->temperature, &environment->pressure, &environment->humidity)) {
+            if (!bmp280_read_float(&bmp280_dev, &sensor_reading.temperature, &sensor_reading.pressure, &sensor_reading.humidity)) {
                 ERROR("Temperature/pressure reading failed");
-                break;
+                continue;
             }
-            INFO("Pressure: %.2f Pa, Temperature: %.2f C, Humidity: %.2f %%RH", environment->pressure, environment->temperature, environment->humidity);
-            // Pass control to the write_influxdb_task
-            xTaskNotifyGive( task_list->taskWriteInfluxdb );
+            sensor_reading.readingTime = time(NULL);
+            INFO("Pressure: %.2f Pa, Temperature: %.2f C, Humidity: %.2f %%RH, EPOCH: %ld",
+                sensor_reading.pressure, sensor_reading.temperature, sensor_reading.humidity, (long)sensor_reading.readingTime);
+
+            // Add the reading to the queue
+            if (xQueueSend(xQueue, (void*)&sensor_reading, 0) != pdPASS) {
+                time_t ts = time(NULL);
+                INFO("Sensor Queue full at %s GMT", ctime(&ts));
+            }
         }
     }
 }
