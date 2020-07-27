@@ -38,7 +38,8 @@
 			"esp_wifi.h": "c",
 			"ip_addr.h": "c",
 			"system_error": "c",
-			"sntp.h": "c"
+			"sntp.h": "c",
+			"i2c.h": "c"
 		},
 		"cSpell.words": [
 			"cstring",
