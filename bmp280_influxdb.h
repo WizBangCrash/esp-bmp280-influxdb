@@ -17,6 +17,12 @@
 // Ask for delay in milliseconds
 #define vTaskDelayMs(ms)	vTaskDelay((ms)/portTICK_PERIOD_MS)
 
+// SENSOR_READ_RATE: Number of milliseconds between sensor readings
+#ifdef APP_DEDUG
+#   define SENSOR_READ_RATE        10000
+#else
+#   define SENSOR_READ_RATE        30000
+#endif
 
 //
 // Structure defining the sensor reading message passed to influxdb task

@@ -52,7 +52,7 @@ void bmp280_task_normal(void *pvParameters)
             QueueHandle_t xQueue = task_list->sensorQueue;
             SensorReading_t sensor_reading;
 
-            vTaskDelayMs(10000);
+            vTaskDelayMs(SENSOR_READ_RATE);
             xTaskNotifyGive( task_list->taskLedBlink );
             if (!bmp280_read_float(&bmp280_dev, &sensor_reading.temperature, &sensor_reading.pressure, &sensor_reading.humidity)) {
                 ERROR("Temperature/pressure reading failed");
