@@ -21,7 +21,7 @@ extern void bmp280_task_normal();
 //
 // Configuration data
 //
-#define APP_VERSION "0.0.6"
+#define APP_VERSION "0.0.7"
 
 #define SNTP_SERVERS 	"dixnas1.lan", "0.uk.pool.ntp.org", "1.uk.pool.ntp.org"
 
