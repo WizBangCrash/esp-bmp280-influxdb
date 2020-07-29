@@ -21,7 +21,7 @@ extern void bmp280_task_normal();
 //
 // Configuration data
 //
-#define APP_VERSION "0.0.7"
+#define APP_VERSION "0.0.8"
 
 #define SNTP_SERVERS 	"dixnas1.lan", "0.uk.pool.ntp.org", "1.uk.pool.ntp.org"
 
@@ -68,7 +68,7 @@ stats_task(void *pvParameters)
         printf("BMP: %d, ", taskStatus.usStackHighWaterMark);
 
         // Show how much room is available in the queue
-        printf("Queue has %d entries free\n", (int)uxQueueSpacesAvailable(app_resources.sensorQueue));
+        printf("Queue has %d messages\n", (int)uxQueueMessagesWaiting(app_resources.sensorQueue));
         vTaskDelayMs(60000);
     }
 }
