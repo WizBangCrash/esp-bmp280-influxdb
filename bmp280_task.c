@@ -10,32 +10,31 @@
 #include "i2c/i2c.h"
 #include "bmp280/bmp280.h"
 
-// #define APP_DEBUG true
+
+#define APP_DEBUG true
 #include "bmp280_influxdb.h"
 
+extern app_config_t app_config;
 
-// TODO: Make these configurable outside this source file
-static const uint8_t i2c_bus = 0;
-static const uint8_t scl_pin = 0;
-static const uint8_t sda_pin = 2;
 
 // TODO: Use forced mode and only take a reading every 60 seconds
 void bmp280_task_normal(void *pvParameters)
 {
     Resources_t *task_list = (Resources_t *)pvParameters;
+    bmp280_config_t *bmp_conf = &app_config.sensor_conf;
     bmp280_params_t  params;
 
     debug("Initialising BMP280 task...");
 
-    i2c_init(i2c_bus, scl_pin, sda_pin, I2C_FREQ_400K);
+    i2c_init(bmp_conf->i2c_bus, bmp_conf->scl_gpio, bmp_conf->sda_gpio, I2C_FREQ_400K);
 
     bmp280_init_default_params(&params);
     // Change standby time to 1 second
     params.standby = BMP280_STANDBY_1000;
 
     bmp280_t bmp280_dev;
-    bmp280_dev.i2c_dev.bus = i2c_bus;
-    bmp280_dev.i2c_dev.addr = BMP280_I2C_ADDRESS_1;
+    bmp280_dev.i2c_dev.bus = bmp_conf->i2c_bus;
+    bmp280_dev.i2c_dev.addr = bmp_conf->i2c_addr == 0 ? BMP280_I2C_ADDRESS_0 : BMP280_I2C_ADDRESS_1;
 
     while (1) {
         while (!bmp280_init(&bmp280_dev, &params)) {
@@ -52,7 +51,7 @@ void bmp280_task_normal(void *pvParameters)
             QueueHandle_t xQueue = task_list->sensorQueue;
             SensorReading_t sensor_reading;
 
-            vTaskDelayMs(SENSOR_READ_RATE);
+            vTaskDelayMs(bmp_conf->poll_period);
             xTaskNotifyGive( task_list->taskLedBlink );
             if (!bmp280_read_float(&bmp280_dev, &sensor_reading.temperature, &sensor_reading.pressure, &sensor_reading.humidity)) {
                 ERROR("Temperature/pressure reading failed");

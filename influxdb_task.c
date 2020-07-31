@@ -21,13 +21,12 @@
 #include "lwip/netdb.h"
 #include "lwip/dns.h"
 
-// #define APP_DEBUG true
+#define APP_DEBUG true
 #include "bmp280_influxdb.h"
 
+extern app_config_t app_config;
 
-#define INFLUXDB_SERVER "dixnas1.lan"
-#define INFLUXDB_PORT "8086"
-#define INFLUXDB_PATH "/write?db=testdb"
+
 #define INFLUXDB_DATA_LEN 201
 #define HTTP_POST_REQ_LEN 500
 #if( INCLUDE_vTaskSuspend != 1 )
@@ -89,7 +88,7 @@ void write_influxdb_task(void *pvParameters)
 
         // We have a reading to send to influxdb, so let's connect to it
         // and write the values into the database
-        int sock_influx = open_socket_on_influxdb(INFLUXDB_SERVER, INFLUXDB_PORT);
+        int sock_influx = open_socket_on_influxdb(app_config.influxdb_conf.server_name, app_config.influxdb_conf.server_port);
         char *value_buffer = malloc(INFLUXDB_DATA_LEN);
         char *post_request = malloc(HTTP_POST_REQ_LEN);
         bool reading_sent = true;  // Assume success
@@ -103,7 +102,7 @@ void write_influxdb_task(void *pvParameters)
                 sensor_reading.pressure, sensor_reading.temperature, sensor_reading.humidity, (long)sensor_reading.readingTime);
 
             // Create the HTTP POST request
-            snprintf(post_request, HTTP_POST_REQ_LEN, "POST %s HTTP/1.1\r\n"
+            snprintf(post_request, HTTP_POST_REQ_LEN, "POST /write?db=%s HTTP/1.1\r\n"
                 "Host: %s\r\n"
                 "User-Agent: bmp280_influxdb/0.1 esp8266\r\n"
                 "Content-type: text/html\r\n"
@@ -111,7 +110,10 @@ void write_influxdb_task(void *pvParameters)
                 "Connection: close\r\n"
                 "\r\n"
                 "%s"
-                "\r\n", INFLUXDB_PATH, INFLUXDB_SERVER, buffer_size, value_buffer);
+                "\r\n",
+                app_config.influxdb_conf.dbname,
+                app_config.influxdb_conf.server_name,
+                buffer_size, value_buffer);
 
             // Send the request
             debug("Request:\n%s", post_request);
