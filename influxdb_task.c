@@ -24,7 +24,7 @@
 #define APP_DEBUG true
 #include "bmp280_influxdb.h"
 
-extern app_config_t app_config;
+extern const app_config_t app_config;
 
 
 #define INFLUXDB_DATA_LEN 201

@@ -29,7 +29,7 @@ app_config_t app_config = {
     .wifi_ssid = WIFI_SSID,
     .wifi_password = WIFI_PASS,
     .led_gpio = 13,
-    .sntp_servers = {SNTP_SERVERS},
+    .sntp_servers = {"dixnas1.lan", "0.uk.pool.ntp.org", "1.uk.pool.ntp.org", "pool.ntp.org"},
     .queue_depth = MAX_QUEUE_DEPTH,
     .location = "Office",
     .influxdb_conf = {
@@ -116,6 +116,8 @@ void my_init_task(void *pvParameters)
 	// Don't use timezone as this has not been implemented correctly in esp_open-rtos
 	sntp_initialize(NULL);
 	/* Servers must be configured right after initialization */
+    debug("1: %s, 2: %s, 3: %s, 4: %s",
+        app_config.sntp_servers[0], app_config.sntp_servers[1], app_config.sntp_servers[2], app_config.sntp_servers[3] );
 	sntp_set_servers(app_config.sntp_servers, MAX_SNTP_SERVERS);
 
     // Wait for time to be set

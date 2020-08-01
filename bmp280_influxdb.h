@@ -24,7 +24,6 @@
 #endif
 #define MAX_QUEUE_DEPTH 120
 #define MAX_SNTP_SERVERS 4
-#define SNTP_SERVERS 	"dixnas1.lan", "0.uk.pool.ntp.org", "1.uk.pool.ntp.org"
 
 typedef enum _sensor_type {
     SENSOR_BMP280 = 0,
@@ -63,7 +62,6 @@ typedef struct _bmp280_config
     uint8_t scl_gpio;
     uint8_t sda_gpio;
     uint16_t poll_period;
-
 } bmp280_config_t;
 
 //

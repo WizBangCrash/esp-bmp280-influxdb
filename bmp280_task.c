@@ -14,7 +14,7 @@
 #define APP_DEBUG true
 #include "bmp280_influxdb.h"
 
-extern app_config_t app_config;
+extern const app_config_t app_config;
 
 
 // TODO: Use forced mode and only take a reading every 60 seconds
