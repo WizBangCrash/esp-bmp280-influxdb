@@ -31,7 +31,8 @@ app_config_t app_config = {
     .led_gpio = 13,
     .sntp_servers = {"dixnas1.lan", "0.uk.pool.ntp.org", "1.uk.pool.ntp.org", "pool.ntp.org"},
     .queue_depth = MAX_QUEUE_DEPTH,
-    .location = "Office",
+    .device = "nodeMCU",
+    .location = "office",
     .influxdb_conf = {
         .server_name = "dixnas1.lan",
         .server_port = "8086",
@@ -127,7 +128,7 @@ void my_init_task(void *pvParameters)
     }
 
     // Create a queue for passing messages between sensor task and influx task
-    newQueue = xQueueCreate(app_config.queue_depth, sizeof(SensorReading_t));
+    newQueue = xQueueCreate(app_config.queue_depth, sizeof(sensor_reading_t));
     if (newQueue == NULL) {
         debug("Could not allocate sensorQueue");
         vTaskDelete(NULL);

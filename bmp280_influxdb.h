@@ -17,13 +17,19 @@
 #define vTaskDelayMs(ms)	vTaskDelay((ms)/portTICK_PERIOD_MS)
 
 // SENSOR_READ_RATE: Number of milliseconds between sensor readings
-#ifdef APP_DEDUG
+#ifdef APP_DEBUG
 #   define SENSOR_READ_RATE        10000
 #else
 #   define SENSOR_READ_RATE        30000
 #endif
 #define MAX_QUEUE_DEPTH 120
 #define MAX_SNTP_SERVERS 4
+
+typedef enum _sensor_measurements {
+    SENSOR_TEMPERATURE  = 0x01,
+    SENSOR_HUMIDITY     = 0x02,
+    SENSOR_PRESSURE     = 0x04
+} sensor_measurements_t;
 
 typedef enum _sensor_type {
     SENSOR_BMP280 = 0,
@@ -33,14 +39,15 @@ typedef enum _sensor_type {
 //
 // Structure defining the sensor reading message passed to influxdb task
 //
-typedef struct biSENSORREADING
+typedef struct _sensor_reading
 {
-    sensor_type_t type;
+    sensor_type_t type;      // Chip name.
+    uint8_t measurements;    // Measurements available
     float pressure;
     float temperature;
     float humidity;
-    time_t readingTime;
-} SensorReading_t;
+    time_t time;             // GMT time reading was taken
+} sensor_reading_t;
 
 //
 // Influxdb server config
@@ -73,6 +80,7 @@ typedef struct _app_config {
     uint8_t led_gpio;
     const char *sntp_servers[MAX_SNTP_SERVERS];
     uint8_t queue_depth;
+    const char *device;
     const char *location;
     influxdb_config_t influxdb_conf;
     bmp280_config_t sensor_conf;

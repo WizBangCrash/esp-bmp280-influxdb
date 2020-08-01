@@ -21,7 +21,7 @@ extern const app_config_t app_config;
 void bmp280_task_normal(void *pvParameters)
 {
     Resources_t *task_list = (Resources_t *)pvParameters;
-    bmp280_config_t *bmp_conf = &app_config.sensor_conf;
+    const bmp280_config_t *bmp_conf = &app_config.sensor_conf;
     bmp280_params_t  params;
 
     debug("Initialising BMP280 task...");
@@ -42,24 +42,29 @@ void bmp280_task_normal(void *pvParameters)
             vTaskDelayMs(1000);
         }
 
-#ifdef BMP280_DEBUG
-        bool bme280p = bmp280_dev.id == BME280_CHIP_ID;
-        INFO("BMP280: found %s", bme280p ? "BME280" : "BMP280");
-#endif
+        bool bmp280_b = bmp280_dev.id == BMP280_CHIP_ID;
+        INFO("BMP280: found %s", bmp280_b ? "BMP280" : "BME280");
+
+        // Create a sensor reading buffer and
+        // set the available sensors based on sensor type
+        sensor_reading_t sensor_reading = {
+            .type = bmp280_b ? SENSOR_BMP280 : SENSOR_BME280,
+            .measurements = bmp280_b ? (SENSOR_TEMPERATURE | SENSOR_PRESSURE) : (SENSOR_TEMPERATURE | SENSOR_PRESSURE | SENSOR_HUMIDITY)
+        };
 
         while(1) {
             QueueHandle_t xQueue = task_list->sensorQueue;
-            SensorReading_t sensor_reading;
 
             vTaskDelayMs(bmp_conf->poll_period);
-            xTaskNotifyGive( task_list->taskLedBlink );
+            xTaskNotifyGive(task_list->taskLedBlink);
             if (!bmp280_read_float(&bmp280_dev, &sensor_reading.temperature, &sensor_reading.pressure, &sensor_reading.humidity)) {
                 ERROR("Temperature/pressure reading failed");
                 continue;
             }
-            sensor_reading.readingTime = time(NULL);
-            INFO("Pressure: %.2f Pa, Temperature: %.2f C, Humidity: %.2f %%RH, EPOCH: %ld",
-                sensor_reading.pressure, sensor_reading.temperature, sensor_reading.humidity, (long)sensor_reading.readingTime);
+            sensor_reading.time = time(NULL);
+            INFO("Temperature: %.2f C, Pressure: %.2f Pa, Humidity: %.2f %%RH, EPOCH: %ld",
+                sensor_reading.pressure, sensor_reading.temperature,
+                sensor_reading.humidity, (long)sensor_reading.time);
 
             // Add the reading to the queue
             if (xQueueSend(xQueue, (void*)&sensor_reading, 0) != pdPASS) {

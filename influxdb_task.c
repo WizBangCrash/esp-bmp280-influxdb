@@ -71,13 +71,40 @@ int open_socket_on_influxdb(char *server_name, char *server_port)
     return s;
 }
 
+static int build_db_record(char *buffer, sensor_reading_t *reading)
+{
+    int len = 0;
+
+    // TODO: Put decode of sensor type to string in sensor code file
+    len = sprintf(buffer, "sensor,device=%s,location=%s,type=%s ",
+        app_config.device, app_config.location,
+        reading->type == SENSOR_BMP280 ? "bmp280" : "bme280");
+
+    if (reading->measurements & SENSOR_TEMPERATURE) {
+        len += sprintf(buffer+len, "temperature=%.2f", reading->temperature);
+    }
+
+    if (reading->measurements & SENSOR_HUMIDITY) {
+        len += sprintf(buffer+len, ",humidity=%.2f", reading->humidity);
+    }
+
+    if (reading->measurements & SENSOR_PRESSURE) {
+        len += sprintf(buffer+len, ",pressure=%.2f", reading->pressure);
+    }
+
+    len += sprintf(buffer+len, " %ld000000000", (long)reading->time);
+
+    debug("len: %d, Str: %s", len, buffer);
+    return len;
+}
+
 void write_influxdb_task(void *pvParameters)
 {
     debug("Starting InfluxDB write task...");
 
     while(1) {
         QueueHandle_t sensor_queue = ((Resources_t *)pvParameters)->sensorQueue;
-        SensorReading_t sensor_reading;
+        sensor_reading_t sensor_reading;
 
         // Wait for a sensor reading or time out after 60 seconds
         debug("Wait for next sensor reading or timeout...");
@@ -97,9 +124,7 @@ void write_influxdb_task(void *pvParameters)
             // We have a connection to the server, so lets send the reading
             // Build the influxdb data string
             // influxdb expects Unix epoch time in nanoseconds so add 9 zeros
-            int buffer_size = snprintf(value_buffer, INFLUXDB_DATA_LEN,
-                "sensor,location=office,device=nodeMCU,type=bme280 pressure=%.2f,temperature=%.2f,humidity=%.2f %ld000000000",
-                sensor_reading.pressure, sensor_reading.temperature, sensor_reading.humidity, (long)sensor_reading.readingTime);
+            int buffer_size = build_db_record(value_buffer, &sensor_reading);
 
             // Create the HTTP POST request
             snprintf(post_request, HTTP_POST_REQ_LEN, "POST /write?db=%s HTTP/1.1\r\n"
