@@ -11,10 +11,13 @@
 #include "bmp280/bmp280.h"
 
 
-#define APP_DEBUG true
+// #define APP_DEBUG true
 #include "bmp280_influxdb.h"
 
 extern const app_config_t app_config;
+
+static const char *bmp280_s = "bmp280";
+static const char *bme280_s = "bme280";
 
 
 // TODO: Use forced mode and only take a reading every 60 seconds
@@ -24,7 +27,7 @@ void bmp280_task_normal(void *pvParameters)
     const bmp280_config_t *bmp_conf = &app_config.sensor_conf;
     bmp280_params_t  params;
 
-    debug("Initialising BMP280 task...");
+    debug("Initialising task...");
 
     i2c_init(bmp_conf->i2c_bus, bmp_conf->scl_gpio, bmp_conf->sda_gpio, I2C_FREQ_400K);
 
@@ -42,14 +45,13 @@ void bmp280_task_normal(void *pvParameters)
             vTaskDelayMs(1000);
         }
 
-        bool bmp280_b = bmp280_dev.id == BMP280_CHIP_ID;
-        INFO("BMP280: found %s", bmp280_b ? "BMP280" : "BME280");
+        INFO("BMP280: found %s", bmp280_dev.id == BMP280_CHIP_ID ? bmp280_s : bme280_s);
 
         // Create a sensor reading buffer and
         // set the available sensors based on sensor type
         sensor_reading_t sensor_reading = {
-            .type = bmp280_b ? SENSOR_BMP280 : SENSOR_BME280,
-            .measurements = bmp280_b ? (SENSOR_TEMPERATURE | SENSOR_PRESSURE) : (SENSOR_TEMPERATURE | SENSOR_PRESSURE | SENSOR_HUMIDITY)
+            .type = bmp280_dev.id == BMP280_CHIP_ID ? bmp280_s : bme280_s,
+            .measurements = bmp280_dev.id == BMP280_CHIP_ID ? (SENSOR_TEMPERATURE | SENSOR_PRESSURE) : (SENSOR_TEMPERATURE | SENSOR_PRESSURE | SENSOR_HUMIDITY)
         };
 
         while(1) {

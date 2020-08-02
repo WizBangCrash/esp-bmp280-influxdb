@@ -21,14 +21,14 @@
 #include "lwip/netdb.h"
 #include "lwip/dns.h"
 
-#define APP_DEBUG true
+// #define APP_DEBUG true
 #include "bmp280_influxdb.h"
 
 extern const app_config_t app_config;
 
 
-#define INFLUXDB_DATA_LEN 201
-#define HTTP_POST_REQ_LEN 500
+#define INFLUXDB_DATA_LEN 256
+#define HTTP_POST_REQ_LEN 512
 #if( INCLUDE_vTaskSuspend != 1 )
     #error INCLUDE_vTaskSuspend must be set to 1 if configUSE_TICKLESS_IDLE is not set to 0
 #endif /* INCLUDE_vTaskSuspend */
@@ -71,33 +71,56 @@ int open_socket_on_influxdb(char *server_name, char *server_port)
     return s;
 }
 
-static int build_db_record(char *buffer, sensor_reading_t *reading)
+//
+// Build a database measurement record based on the measurements the
+// sensor is able to read.
+//
+// Returns a buffer containing formated influxdb record. Buffer needs to be freed
+//
+static int build_record(char **record_buff, sensor_reading_t *reading)
 {
     int len = 0;
+    char *buffer = malloc(INFLUXDB_DATA_LEN);
 
-    // TODO: Put decode of sensor type to string in sensor code file
-    len = sprintf(buffer, "sensor,device=%s,location=%s,type=%s ",
-        app_config.device, app_config.location,
-        reading->type == SENSOR_BMP280 ? "bmp280" : "bme280");
+    if (buffer == NULL) {
+        *record_buff = NULL;
+    } else {
+        len = snprintf(buffer, INFLUXDB_DATA_LEN, "sensor,device=%s,location=%s,type=%s ",
+            app_config.device, app_config.location, reading->type);
 
-    if (reading->measurements & SENSOR_TEMPERATURE) {
-        len += sprintf(buffer+len, "temperature=%.2f", reading->temperature);
+        if (len < INFLUXDB_DATA_LEN && reading->measurements & SENSOR_TEMPERATURE) {
+            len += snprintf(buffer + len, INFLUXDB_DATA_LEN - len, "temperature=%.2f", reading->temperature);
+        }
+
+        if (len < INFLUXDB_DATA_LEN && reading->measurements & SENSOR_HUMIDITY) {
+            len += snprintf(buffer + len, INFLUXDB_DATA_LEN - len, ",humidity=%.2f", reading->humidity);
+        }
+
+        if (len < INFLUXDB_DATA_LEN && reading->measurements & SENSOR_PRESSURE) {
+            len += snprintf(buffer + len, INFLUXDB_DATA_LEN - len, ",pressure=%.2f", reading->pressure);
+        }
+
+        // influxdb expects Unix epoch time in nanoseconds so add 9 zeros
+        if (len < INFLUXDB_DATA_LEN) {
+            len += snprintf(buffer + len, INFLUXDB_DATA_LEN - len, " %ld000000000 ", (long)reading->time);
+        }
+
+        debug("len: %d, str: %s", len, buffer);
+        if (len < INFLUXDB_DATA_LEN) {
+            *record_buff = buffer;
+        } else {
+            *record_buff = NULL;
+            len = 0;
+            free(buffer);
+            ERROR("Record string too big for buffer (%d chars)", len);
+        }
     }
-
-    if (reading->measurements & SENSOR_HUMIDITY) {
-        len += sprintf(buffer+len, ",humidity=%.2f", reading->humidity);
-    }
-
-    if (reading->measurements & SENSOR_PRESSURE) {
-        len += sprintf(buffer+len, ",pressure=%.2f", reading->pressure);
-    }
-
-    len += sprintf(buffer+len, " %ld000000000", (long)reading->time);
-
-    debug("len: %d, Str: %s", len, buffer);
     return len;
 }
 
+// TODO: Optimise to write multiple entries in one POST request
+//       See https://docs.influxdata.com/influxdb/v1.8/guides/write_data/
+//
 void write_influxdb_task(void *pvParameters)
 {
     debug("Starting InfluxDB write task...");
@@ -105,6 +128,7 @@ void write_influxdb_task(void *pvParameters)
     while(1) {
         QueueHandle_t sensor_queue = ((Resources_t *)pvParameters)->sensorQueue;
         sensor_reading_t sensor_reading;
+        char *measurement_buff = NULL;
 
         // Wait for a sensor reading or time out after 60 seconds
         debug("Wait for next sensor reading or timeout...");
@@ -116,15 +140,12 @@ void write_influxdb_task(void *pvParameters)
         // We have a reading to send to influxdb, so let's connect to it
         // and write the values into the database
         int sock_influx = open_socket_on_influxdb(app_config.influxdb_conf.server_name, app_config.influxdb_conf.server_port);
-        char *value_buffer = malloc(INFLUXDB_DATA_LEN);
+        int record_buff_size = build_record(&measurement_buff, &sensor_reading);
         char *post_request = malloc(HTTP_POST_REQ_LEN);
         bool reading_sent = true;  // Assume success
-        debug("sock_influx: %d, vb: 0x%p, pr: 0x%p", sock_influx, value_buffer, post_request);
-        if (sock_influx >= 0 && value_buffer != NULL && post_request != NULL) {
+        debug("sock_influx: %d, vb: 0x%p, pr: 0x%p", sock_influx, measurement_buff, post_request);
+        if (sock_influx >= 0 && measurement_buff != NULL && post_request != NULL) {
             // We have a connection to the server, so lets send the reading
-            // Build the influxdb data string
-            // influxdb expects Unix epoch time in nanoseconds so add 9 zeros
-            int buffer_size = build_db_record(value_buffer, &sensor_reading);
 
             // Create the HTTP POST request
             snprintf(post_request, HTTP_POST_REQ_LEN, "POST /write?db=%s HTTP/1.1\r\n"
@@ -138,10 +159,10 @@ void write_influxdb_task(void *pvParameters)
                 "\r\n",
                 app_config.influxdb_conf.dbname,
                 app_config.influxdb_conf.server_name,
-                buffer_size, value_buffer);
+                record_buff_size, measurement_buff);
 
             // Send the request
-            debug("Request:\n%s", post_request);
+            // debug("Request:\n%s", post_request);
             if (write(sock_influx, post_request, strlen(post_request)) >= 0) {
                 // Check for a response
                 char *post_response = calloc(512, sizeof(char));
@@ -173,8 +194,8 @@ void write_influxdb_task(void *pvParameters)
         if (post_request != NULL) {
             free(post_request);
         }
-        if (value_buffer != NULL) {
-            free(value_buffer);
+        if (measurement_buff != NULL) {
+            free(measurement_buff);
         }
         if (sock_influx >= 0) {
             close(sock_influx);

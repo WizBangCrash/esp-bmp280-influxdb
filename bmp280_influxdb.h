@@ -31,17 +31,12 @@ typedef enum _sensor_measurements {
     SENSOR_PRESSURE     = 0x04
 } sensor_measurements_t;
 
-typedef enum _sensor_type {
-    SENSOR_BMP280 = 0,
-    SENSOR_BME280
-} sensor_type_t;
-
 //
 // Structure defining the sensor reading message passed to influxdb task
 //
 typedef struct _sensor_reading
 {
-    sensor_type_t type;      // Chip name.
+    const char *type;        // Chip name.
     uint8_t measurements;    // Measurements available
     float pressure;
     float temperature;
