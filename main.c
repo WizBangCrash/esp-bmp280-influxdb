@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 
 #include "espressif/esp_common.h"
@@ -21,11 +22,30 @@ extern void bmp280_task_normal();
 //
 // Configuration data
 //
-#define APP_VERSION "0.0.8"
+#define APP_VERSION "0.0.9"
 
-#define SNTP_SERVERS 	"dixnas1.lan", "0.uk.pool.ntp.org", "1.uk.pool.ntp.org"
 
-const int led_pin = 13;
+app_config_t app_config = {
+    .wifi_ssid = WIFI_SSID,
+    .wifi_password = WIFI_PASS,
+    .led_gpio = 13,
+    .sntp_servers = {"dixnas1.lan", "0.uk.pool.ntp.org", "1.uk.pool.ntp.org", "pool.ntp.org"},
+    .queue_depth = MAX_QUEUE_DEPTH,
+    .device = "nodeMCU",
+    .location = "office",
+    .influxdb_conf = {
+        .server_name = "dixnas1.lan",
+        .server_port = "8086",
+        .dbname = "testdb"
+    },
+    .sensor_conf = {
+        .i2c_bus = 0,
+        .i2c_addr = 1,
+        .scl_gpio = 0,
+        .sda_gpio = 2,
+        .poll_period = SENSOR_READ_RATE
+    }
+};
 static Resources_t app_resources;
 
 
@@ -37,15 +57,15 @@ static Resources_t app_resources;
 void led_blink_task(void *pvParameters)
 {
     debug("Initialising LED blink task");
-    gpio_enable(led_pin, GPIO_OUTPUT);
+    gpio_enable(app_config.led_gpio, GPIO_OUTPUT);
 
     while (1) {
         // Wait until I'm asked to flash the LED
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
         debug("Time to blink..");
-        gpio_write(led_pin, 1);
+        gpio_write(app_config.led_gpio, 1);
         vTaskDelayMs(200);
-        gpio_write(led_pin, 0);
+        gpio_write(app_config.led_gpio, 0);
     }
 }
 
@@ -79,7 +99,6 @@ stats_task(void *pvParameters)
 //
 void my_init_task(void *pvParameters)
 {
-	const char *servers[] = {SNTP_SERVERS};
 	UNUSED_ARG(pvParameters);
     QueueHandle_t newQueue;
 
@@ -87,7 +106,7 @@ void my_init_task(void *pvParameters)
 	while (sdk_wifi_station_get_connect_status() != STATION_GOT_IP) {
 		vTaskDelayMs(1000);
 	}
-
+;
 	/* Start SNTP */
 	INFO("Starting SNTP... ");
 	// SNTP will request an update each 10 minutes
@@ -98,7 +117,9 @@ void my_init_task(void *pvParameters)
 	// Don't use timezone as this has not been implemented correctly in esp_open-rtos
 	sntp_initialize(NULL);
 	/* Servers must be configured right after initialization */
-	sntp_set_servers(servers, sizeof(servers) / sizeof(char*));
+    debug("1: %s, 2: %s, 3: %s, 4: %s",
+        app_config.sntp_servers[0], app_config.sntp_servers[1], app_config.sntp_servers[2], app_config.sntp_servers[3] );
+	sntp_set_servers(app_config.sntp_servers, MAX_SNTP_SERVERS);
 
     // Wait for time to be set
     while (time(NULL) < 1593383378) {
@@ -107,7 +128,7 @@ void my_init_task(void *pvParameters)
     }
 
     // Create a queue for passing messages between sensor task and influx task
-    newQueue = xQueueCreate(60, sizeof(SensorReading_t));
+    newQueue = xQueueCreate(app_config.queue_depth, sizeof(sensor_reading_t));
     if (newQueue == NULL) {
         debug("Could not allocate sensorQueue");
         vTaskDelete(NULL);
@@ -140,14 +161,14 @@ void user_init(void)
     printf("SDK version : %s\n", sdk_system_get_sdk_version());
     printf("APP version : %s\n", APP_VERSION);
 
-    struct sdk_station_config config = {
-        .ssid = WIFI_SSID,
-        .password = WIFI_PASS,
-    };
+    struct sdk_station_config sta_config;
+    memset(&sta_config, 0, sizeof(sta_config));
+    memcpy(sta_config.ssid, app_config.wifi_ssid, 32);
+    memcpy(sta_config.password, app_config.wifi_password, 64);
 
     /* required to call wifi_set_opmode before station_set_config */
     sdk_wifi_set_opmode(STATION_MODE);
-    sdk_wifi_station_set_config(&config);
+    sdk_wifi_station_set_config(&sta_config);
 
     xTaskCreate(my_init_task, "Init Task", 1024, NULL, 1, NULL);
 }

@@ -10,32 +10,34 @@
 #include "i2c/i2c.h"
 #include "bmp280/bmp280.h"
 
+
 // #define APP_DEBUG true
 #include "bmp280_influxdb.h"
 
+extern const app_config_t app_config;
 
-// TODO: Make these configurable outside this source file
-static const uint8_t i2c_bus = 0;
-static const uint8_t scl_pin = 0;
-static const uint8_t sda_pin = 2;
+static const char *bmp280_s = "bmp280";
+static const char *bme280_s = "bme280";
+
 
 // TODO: Use forced mode and only take a reading every 60 seconds
 void bmp280_task_normal(void *pvParameters)
 {
     Resources_t *task_list = (Resources_t *)pvParameters;
+    const bmp280_config_t *bmp_conf = &app_config.sensor_conf;
     bmp280_params_t  params;
 
-    debug("Initialising BMP280 task...");
+    debug("Initialising task...");
 
-    i2c_init(i2c_bus, scl_pin, sda_pin, I2C_FREQ_400K);
+    i2c_init(bmp_conf->i2c_bus, bmp_conf->scl_gpio, bmp_conf->sda_gpio, I2C_FREQ_400K);
 
     bmp280_init_default_params(&params);
     // Change standby time to 1 second
     params.standby = BMP280_STANDBY_1000;
 
     bmp280_t bmp280_dev;
-    bmp280_dev.i2c_dev.bus = i2c_bus;
-    bmp280_dev.i2c_dev.addr = BMP280_I2C_ADDRESS_1;
+    bmp280_dev.i2c_dev.bus = bmp_conf->i2c_bus;
+    bmp280_dev.i2c_dev.addr = bmp_conf->i2c_addr == 0 ? BMP280_I2C_ADDRESS_0 : BMP280_I2C_ADDRESS_1;
 
     while (1) {
         while (!bmp280_init(&bmp280_dev, &params)) {
@@ -43,24 +45,28 @@ void bmp280_task_normal(void *pvParameters)
             vTaskDelayMs(1000);
         }
 
-#ifdef BMP280_DEBUG
-        bool bme280p = bmp280_dev.id == BME280_CHIP_ID;
-        INFO("BMP280: found %s", bme280p ? "BME280" : "BMP280");
-#endif
+        INFO("BMP280: found %s", bmp280_dev.id == BMP280_CHIP_ID ? bmp280_s : bme280_s);
+
+        // Create a sensor reading buffer and
+        // set the available sensors based on sensor type
+        sensor_reading_t sensor_reading = {
+            .type = bmp280_dev.id == BMP280_CHIP_ID ? bmp280_s : bme280_s,
+            .measurements = bmp280_dev.id == BMP280_CHIP_ID ? (SENSOR_TEMPERATURE | SENSOR_PRESSURE) : (SENSOR_TEMPERATURE | SENSOR_PRESSURE | SENSOR_HUMIDITY)
+        };
 
         while(1) {
             QueueHandle_t xQueue = task_list->sensorQueue;
-            SensorReading_t sensor_reading;
 
-            vTaskDelayMs(SENSOR_READ_RATE);
-            xTaskNotifyGive( task_list->taskLedBlink );
+            vTaskDelayMs(bmp_conf->poll_period);
+            xTaskNotifyGive(task_list->taskLedBlink);
             if (!bmp280_read_float(&bmp280_dev, &sensor_reading.temperature, &sensor_reading.pressure, &sensor_reading.humidity)) {
                 ERROR("Temperature/pressure reading failed");
                 continue;
             }
-            sensor_reading.readingTime = time(NULL);
-            INFO("Pressure: %.2f Pa, Temperature: %.2f C, Humidity: %.2f %%RH, EPOCH: %ld",
-                sensor_reading.pressure, sensor_reading.temperature, sensor_reading.humidity, (long)sensor_reading.readingTime);
+            sensor_reading.time = time(NULL);
+            INFO("Temperature: %.2f C, Pressure: %.2f Pa, Humidity: %.2f %%RH, EPOCH: %ld",
+                sensor_reading.pressure, sensor_reading.temperature,
+                sensor_reading.humidity, (long)sensor_reading.time);
 
             // Add the reading to the queue
             if (xQueueSend(xQueue, (void*)&sensor_reading, 0) != pdPASS) {
